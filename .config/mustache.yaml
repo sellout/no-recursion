@@ -5,7 +5,6 @@
       "name": "no-recursion",
       "repo": "sellout/no-recursion",
       "summary": "A GHC plugin to remove support for recursion",
-      "version": "0.1.0.0",
     },
   "type": { "name": "haskell" },
 }
