@@ -23,38 +23,45 @@ in {
             ghc = self.lib.nonNixTestedGhcVersions;
             os = githubSystems;
             bounds = ["--prefer-oldest" ""];
-            exclude = [
-              ## GHCup can’t find this version for Linux.
-              {
-                ghc = "7.10.3";
-                os = "ubuntu-22.04";
-              }
-              ## TODO: Review these jobs and try to enable them.
-              {
-                ghc = "7.10.3";
-                os = "macos-13";
-              }
-              {
-                ghc = "7.10.3";
+            exclude =
+              [
+                ## GHCup can’t find this version for Linux.
+                {
+                  ghc = "7.10.3";
+                  os = "ubuntu-22.04";
+                }
+                ## These fail to build Cabal-syntax – since it works on most
+                ## OSes with `--prefer-oldest`, it may be a dependency version
+                ## issue.
+                {
+                  bounds = "--prefer-oldest";
+                  ghc = "8.4.1";
+                  os = "windows-2022";
+                }
+                {
+                  bounds = "";
+                  ghc = "8.4.1";
+                }
+                ## Plugins are broken on Windows from GHC 8.6.1 to 8.6.4.
+                ## (See https://gitlab.haskell.org/ghc/ghc/-/issues/15700)
+                {
+                  ghc = "8.6.1";
+                  os = "windows-2022";
+                }
+              ]
+              ## These fail to build hsc2hs, perhaps related to
+              ## https://stackoverflow.com/questions/32740172/unresolved-stdio-common-vsprintf-s-what-library-has-this.
+              ++ map (ghc: {
+                inherit ghc;
                 os = "windows-2022";
-              }
-              {
-                ghc = "8.0.2";
+              }) ["7.10.3" "8.0.2" "8.2.2"];
+            include =
+              ## These replace the excluded 8.6.1/windows-2022 above.
+              map (bounds: {
+                inherit bounds;
+                ghc = "8.6.5";
                 os = "windows-2022";
-              }
-              {
-                ghc = "8.2.2";
-                os = "windows-2022";
-              }
-              {
-                ghc = "8.4.1";
-                os = "windows-2022";
-              }
-              {
-                bounds = "";
-                ghc = "8.4.1";
-              }
-            ];
+              }) ["--prefer-oldest" ""];
           };
         };
         runs-on = "\${{ matrix.os }}";

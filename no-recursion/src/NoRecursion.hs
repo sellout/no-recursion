@@ -6,6 +6,10 @@
 --   default.
 module NoRecursion (plugin) where
 
+-- NB: These unqualified modules come from semigroups in GHC <8, and base
+--     otherwise.
+import safe Data.List.NonEmpty (NonEmpty, nonEmpty)
+import safe Data.Semigroup (Semigroup ((<>)))
 import safe "base" Control.Applicative (Applicative (pure))
 import safe "base" Control.Category (Category ((.)))
 import safe "base" Control.Exception (ErrorCall (ErrorCall), throwIO)
@@ -23,9 +27,7 @@ import safe "base" Data.Foldable
 import safe "base" Data.Function (($))
 import safe "base" Data.Functor (Functor (fmap), (<$>))
 import safe "base" Data.List (filter, intercalate, isPrefixOf, null)
-import safe "base" Data.List.NonEmpty (NonEmpty, nonEmpty)
 import safe "base" Data.Maybe (maybe)
-import safe "base" Data.Semigroup (Semigroup ((<>)))
 import safe "base" Data.String (String)
 import safe "base" Data.Tuple (fst, uncurry)
 #if MIN_VERSION_ghc(9, 0, 0)
