@@ -16,6 +16,8 @@ build-type: Custom
 license: AGPL-3.0-or-later
 license-files:
   LICENSE
+extra-doc-files:
+  README.md
 tested-with:
   GHC == {
 --  GHCup   Nixpkgs
