@@ -22,6 +22,53 @@ Now, any recursion in that module will result in a compilation failure.
 
 **NB**: This won’t prevent you from using recursive functions imported from other modules, but inlined definitions from other modules _will_ be checked.
 
+### allowing some recursion
+
+NoRecursion supports two source annotations: `"Recursion"` and `"NoRecursion"`.
+
+You can re-enable recursion for individual top-level names like
+
+```haskell
+recDef :: a -> b
+recDef = myRecDef
+{-# ANN recDef "Recursion" #-}
+```
+
+Or you can re-enable recursion for an entire module with
+
+```haskell
+{-# ANN module "Recursion" #-}
+```
+
+And then you can re-disable recursion for individual names with
+
+```haskell
+nonRecDef :: a -> a
+nonRecDef = id
+{-# ANN nonRecDef "NoRecursion" #-}
+```
+
+If both '"Recursion"' and `"NoRecursion"` annotations exist on the same name (or module), it’s treated as `NoRecursion`.
+
+
+**NB**: If multiple names are mutually recursive, then they must all have recursion enabled to avoid being flagged by the plugin.
+
+If you enable `NoRecursion` at the component level, it can also be useful to disable it for an entire module (the inverse of `{-# OPTIONS_GHC -fplugin NoRecursion #-}`).
+
+
+Once you have
+
+`ANN` has some caveats:
+
+- `ANN` isn’t allowed by [Safe Haskell](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/safe_haskell.html), so any module that uses it will be inferred as `Unsafe`.
+- If you enable [the `OverloadedStrings` language extension](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/overloaded_strings.html), you will have to specify the type in the annotation, like
+
+  ```haskell
+  {-# ANN module "Recursion" :: String #-}
+  ```
+
+For more about how to use annotations, see [the GHC User’s Guide](https://downloads.haskell.org/ghc/latest/docs/users_guide/extending_ghc.html#source-annotations).
+
 ## development environment
 
 We recommend the following steps to make working in this repository as easy as possible.
@@ -36,7 +83,7 @@ This will apply our repository-specific Git configuration to `git` commands run 
 
 ## building & development
 
-Especially if you are unfamiliar with the haskell ecosystem, there is a Nix build (both with and without a flake). If you are unfamiliar with Nix, [Nix adjacent](...) can help you get things working in the shortest time and least effort possible.
+Especially if you are unfamiliar with the Haskell ecosystem, there is a Nix build (both with and without a flake). If you are unfamiliar with Nix, [Nix adjacent](...) can help you get things working in the shortest time and least effort possible.
 
 ### if you have `nix` installed
 
