@@ -10,17 +10,7 @@ General recursion can be the cause of a lot of problems. This removes recursion 
 
 ## usage
 
-Add `no-recursion` to your build dependencies.
-
-Add `-fplugin NoRecursion` to your GHC options. This can be done per-module with
-
-```haskell
-{-# OPTIONS_GHC -fplugin NoRecursion #-}
-```
-
-Now, any recursion in that module will result in a compilation failure.
-
-**NB**: This won’t prevent you from using recursive functions imported from other modules, but inlined definitions from other modules _will_ be checked.
+See [the plugin’s README](./no-recursion/README.md) for usage information.
 
 ## development environment
 
@@ -36,7 +26,7 @@ This will apply our repository-specific Git configuration to `git` commands run 
 
 ## building & development
 
-Especially if you are unfamiliar with the haskell ecosystem, there is a Nix build (both with and without a flake). If you are unfamiliar with Nix, [Nix adjacent](...) can help you get things working in the shortest time and least effort possible.
+Especially if you are unfamiliar with the Haskell ecosystem, there is a Nix build (both with and without a flake). If you are unfamiliar with Nix, [Nix adjacent](...) can help you get things working in the shortest time and least effort possible.
 
 ### if you have `nix` installed
 
@@ -65,11 +55,3 @@ To mitigate some of those issues for versioning, we assume the following usage:
 - modules should be imported qualified, so that adding definitions is a _minor_ change;
 - adding instances can't be mitigated in the same way, and it's not uncommon for downstream libraries to add orphans instances when they're omitted from upstream libraries. However, since these conflicts can only happen via direct dependencies, and represent an explicit downstream workaround, it’s reasonable to expect a quick downstream update to remove or conditionalize the workaround. So, this is considered a _minor major_ change;
 - deprecation is considered a _revision_ change, however it will often be paired with _minor_ changes. `-Werror` can cause this to fail, but published libraries shouldn't be compiled with `-Werror`.
-
-## comparisons
-
-Other projects similar to this one, and how they differ.
-
-### [WartRemover](https://www.wartremover.org/)
-
-WartRemover is a Scala linting tool. [A `Recursion` wart](https://www.wartremover.org/doc/warts.html#recursion) was added in 2017, and I’ve been meaning to write this plugin ever since. It only took seven years to find a few hours to make it happen …
