@@ -30,9 +30,9 @@
   ### };
   ### checks.format = verify that code matches Ormolu expectations
   outputs = {
-    concat,
     flake-utils,
     flaky,
+    flaky-haskell,
     nixpkgs,
     self,
   }: let
@@ -41,7 +41,7 @@
     supportedSystems = flaky.lib.defaultSystems;
 
     cabalPackages = pkgs: hpkgs:
-      concat.lib.cabalProject2nix
+      flaky-haskell.lib.cabalProject2nix
       ./cabal.project
       pkgs
       hpkgs
@@ -70,7 +70,7 @@
       # - https://discourse.nixos.org/t/nix-haskell-development-2020/6170
       overlays = {
         default =
-          concat.lib.overlayHaskellPackages
+          flaky-haskell.lib.overlayHaskellPackages
           (self.lib.supportedGhcVersions "")
           (final: prev:
             nixpkgs.lib.composeManyExtensions [
@@ -82,7 +82,7 @@
               (self.overlays.haskellDependencies final prev)
             ]);
 
-        haskell = concat.lib.haskellOverlay cabalPackages;
+        haskell = flaky-haskell.lib.haskellOverlay cabalPackages;
 
         haskellDependencies = final: prev: hfinal: hprev:
           (
@@ -145,9 +145,20 @@
             ])
           supportedSystems);
 
-      lib = {
+      lib = let
+        defaultCompilerVersion = "9.4.8";
+
+        ## Converts a good package version to the abbreviated attribute name for
+        ## GHC packages.
+        ##
+        ## TODO: Move to flaky-haskell.
+        ghcPackageForVersion = version:
+          "ghc" + builtins.replaceStrings ["."] [""] version;
+      in {
+        inherit defaultCompilerVersion ghcPackageForVersion;
+
         ## TODO: Extract this automatically from `pkgs.haskellPackages`.
-        defaultCompiler = "ghc948";
+        defaultCompiler = ghcPackageForVersion defaultCompilerVersion;
 
         ## Test the oldest revision possible for each minor release. If it’s not
         ## available in nixpkgs, test the oldest available, then try an older
@@ -155,18 +166,18 @@
         ## explicit conditionalization. And check whatever version `pkgs.ghc`
         ## maps to in the nixpkgs we depend on.
         testedGhcVersions = system:
-          [
-            self.lib.defaultCompiler
-            "ghc8107"
-            "ghc902"
-            "ghc924"
-            "ghc942"
-            "ghc962"
-            "ghc981"
-            # "ghcHEAD" # doctest doesn’t work on current HEAD
-          ]
-          ## dependency compiler-rt-libc-7.1.0 is broken in on aarch64-darwin.
-          ++ nixpkgs.lib.optional (system != "aarch64-darwin") "ghc884";
+          map ghcPackageForVersion ([
+              self.lib.defaultCompilerVersion
+              "8.10.7"
+              "9.0.2"
+              "9.2.4"
+              "9.4.2"
+              "9.6.2"
+              "9.8.1"
+              # "HEAD" # doctest doesn’t work on current HEAD
+            ]
+            ## dependency compiler-rt-libc-7.1.0 is broken in on aarch64-darwin.
+            ++ nixpkgs.lib.optional (system != "aarch64-darwin") "8.8.4");
 
         ## The versions that are older than those supported by Nix that we
         ## prefer to test against.
@@ -189,17 +200,17 @@
         ## supported version.
         supportedGhcVersions = system:
           self.lib.testedGhcVersions system
-          ++ [
-            "ghc925"
-            "ghc926"
-            "ghc927"
-            "ghc928"
-            "ghc943"
-            "ghc944"
-            "ghc945"
-            "ghc946"
-            "ghc947"
-            "ghc963"
+          ++ map ghcPackageForVersion [
+            "9.2.5"
+            "9.2.6"
+            "9.2.7"
+            "9.2.8"
+            "9.4.3"
+            "9.4.4"
+            "9.4.5"
+            "9.4.6"
+            "9.4.7"
+            "9.6.3"
           ];
       };
     }
@@ -217,14 +228,14 @@
     in {
       packages =
         {default = self.packages.${system}."${self.lib.defaultCompiler}_all";}
-        // concat.lib.mkPackages
+        // flaky-haskell.lib.mkPackages
         pkgs
         (self.lib.supportedGhcVersions system)
         cabalPackages;
 
       devShells =
         {default = self.devShells.${system}.${self.lib.defaultCompiler};}
-        // concat.lib.mkDevShells
+        // flaky-haskell.lib.mkDevShells
         pkgs
         (self.lib.supportedGhcVersions system)
         cabalPackages
@@ -247,18 +258,6 @@
     });
 
   inputs = {
-    # Currently contains our Haskell/Nix lib that should be extracted into its
-    # own flake.
-    concat = {
-      inputs = {
-        ## TODO: The version currently used by concat doesn’t support i686-linux.
-        bash-strict-mode.follows = "flaky/bash-strict-mode";
-        flake-utils.follows = "flake-utils";
-        nixpkgs.follows = "nixpkgs";
-      };
-      url = "github:compiling-to-categories/concat";
-    };
-
     flake-utils.url = "github:numtide/flake-utils";
 
     flaky = {
@@ -267,6 +266,15 @@
         nixpkgs.follows = "nixpkgs";
       };
       url = "github:sellout/flaky";
+    };
+
+    flaky-haskell = {
+      inputs = {
+        flake-utils.follows = "flake-utils";
+        flaky.follows = "flaky";
+        nixpkgs.follows = "nixpkgs";
+      };
+      url = "github:sellout/flaky-haskell";
     };
 
     nixpkgs.url = "github:NixOS/nixpkgs/release-23.11";

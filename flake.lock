@@ -26,31 +26,33 @@
         "type": "github"
       }
     },
-    "concat": {
+    "bash-strict-mode_2": {
       "inputs": {
-        "bash-strict-mode": [
-          "flaky",
-          "bash-strict-mode"
-        ],
         "flake-utils": [
+          "flaky-haskell",
           "flake-utils"
         ],
-        "home-manager": "home-manager",
+        "flaky": [
+          "flaky-haskell",
+          "flaky"
+        ],
         "nixpkgs": [
+          "flaky-haskell",
           "nixpkgs"
-        ]
+        ],
+        "shellcheck-nix-attributes": "shellcheck-nix-attributes_2"
       },
       "locked": {
-        "lastModified": 1709117943,
-        "narHash": "sha256-3LXt0nQBSsEOe9h6j4gbSEf9vyjmTRN2xq4k8Emu7/8=",
-        "owner": "compiling-to-categories",
-        "repo": "concat",
-        "rev": "7aa7d5ebe165161b7c0aafb8af006020534eaf70",
+        "lastModified": 1705296053,
+        "narHash": "sha256-vLinr3DBi1aax1Hh6iRFfh02o2IJSG3KBeSZsTsHPas=",
+        "owner": "sellout",
+        "repo": "bash-strict-mode",
+        "rev": "be73c499914dd4be83794b8aed4efd0e3cb527e8",
         "type": "github"
       },
       "original": {
-        "owner": "compiling-to-categories",
-        "repo": "concat",
+        "owner": "sellout",
+        "repo": "bash-strict-mode",
         "type": "github"
       }
     },
@@ -128,7 +130,7 @@
         "flake-utils": [
           "flake-utils"
         ],
-        "home-manager": "home-manager_2",
+        "home-manager": "home-manager",
         "nixpkgs": [
           "nixpkgs"
         ],
@@ -148,29 +150,34 @@
         "type": "github"
       }
     },
-    "home-manager": {
+    "flaky-haskell": {
       "inputs": {
+        "bash-strict-mode": "bash-strict-mode_2",
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "flaky": [
+          "flaky"
+        ],
         "nixpkgs": [
-          "concat",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1700814205,
-        "narHash": "sha256-lWqDPKHRbQfi+zNIivf031BUeyciVOtwCwTjyrhDB5g=",
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "rev": "aeb2232d7a32530d3448318790534d196bf9427a",
+        "lastModified": 1705642269,
+        "narHash": "sha256-Ddv6JOv/Sq3y++TNrhARJqeR9EQl4qwcKN1Tr0Aofj4=",
+        "owner": "sellout",
+        "repo": "flaky-haskell",
+        "rev": "9e01acbd42d9393965f34748f287e8268483d62b",
         "type": "github"
       },
       "original": {
-        "owner": "nix-community",
-        "ref": "release-23.11",
-        "repo": "home-manager",
+        "owner": "sellout",
+        "repo": "flaky-haskell",
         "type": "github"
       }
     },
-    "home-manager_2": {
+    "home-manager": {
       "inputs": {
         "nixpkgs": [
           "flaky",
@@ -372,13 +379,29 @@
     },
     "root": {
       "inputs": {
-        "concat": "concat",
         "flake-utils": "flake-utils",
         "flaky": "flaky",
+        "flaky-haskell": "flaky-haskell",
         "nixpkgs": "nixpkgs"
       }
     },
     "shellcheck-nix-attributes": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1586929030,
+        "narHash": "sha256-a0WyWaz+nMYFWI43Ip9EUnPuBW0O4EIiTzYZKGqNjss=",
+        "owner": "Fuuzetsu",
+        "repo": "shellcheck-nix-attributes",
+        "rev": "51b49d5fe65ece69eb5e2003396bf096083ec281",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Fuuzetsu",
+        "repo": "shellcheck-nix-attributes",
+        "type": "github"
+      }
+    },
+    "shellcheck-nix-attributes_2": {
       "flake": false,
       "locked": {
         "lastModified": 1586929030,
