@@ -5,6 +5,9 @@ githubSystems: {
   ...
 }: let
   planName = "plan-\${{ runner.os }}-\${{ matrix.ghc }}\${{ matrix.bounds }}";
+  ## NB: `cabal-plan-bounds` doesn’t yet support GHC 9.8.
+  ghc-version = "9.6.3";
+  runs-on = "ubuntu-22.04";
 in {
   services.github.workflow."build.yml".text = lib.generators.toYAML {} {
     name = "CI";
@@ -103,7 +106,10 @@ in {
         ];
       };
       check-bounds = {
-        runs-on = "ubuntu-22.04";
+        inherit runs-on;
+        ## Some "build" jobs are a bit flaky. This can give us useful bounds
+        ## information even without all of the build plans.
+        "if" = "always()";
         needs = ["build"];
         steps = [
           {uses = "actions/checkout@v4";}
@@ -112,8 +118,7 @@ in {
             uses = "haskell-actions/setup@v2";
             id = "setup-haskell-cabal";
             "with" = {
-              ## NB: `cabal-plan-bounds` doesn’t yet support GHC 9.8.
-              ghc-version = "9.6.3";
+              inherit ghc-version;
               cabal-version = pkgs.cabal-install.version;
             };
           }
@@ -159,6 +164,53 @@ in {
                 echo "$diffs"
                 exit 1
               fi
+            '';
+          }
+        ];
+      };
+      check-licenses = {
+        inherit runs-on;
+        ## Some "build" jobs are a bit flaky. Since this only uses one of the
+        ## jobs from the matrix, we run it regardless of build failures.
+        "if" = "always()";
+        needs = ["build"];
+        steps = [
+          {uses = "actions/checkout@v4";}
+          {
+            ## TODO: Uses deprecated Node.js, see haskell-actions/setup#72
+            uses = "haskell-actions/setup@v2";
+            id = "setup-haskell-cabal";
+            "with" = {
+              inherit ghc-version;
+              cabal-version = pkgs.cabal-install.version;
+            };
+          }
+          {run = "cabal install cabal-plan -flicense-report";}
+          {
+            name = "download Cabal plans";
+            uses = "actions/download-artifact@v4";
+            "with" = {
+              path = "plans";
+              pattern = "plan-*";
+              merge-multiple = true;
+            };
+          }
+          {
+            run = ''
+              mkdir -p dist-newstyle/cache
+              mv plans/plan-''${{ runner.os }}-9.8.1.json dist-newstyle/cache/plan.json
+            '';
+          }
+          {
+            name = "check if licenses have changed";
+            run = ''
+              {
+                echo "**NB**: This captures the licenses associated with a particular set of dependency versions. If your own build solves differently, it’s possible that the licenses may have changed, or even that the set of dependencies itself is different. Please make sure you run [\`cabal-plan license-report\`](https://hackage.haskell.org/package/cabal-plan) on your own components rather than assuming this is authoritative."
+                echo
+                cabal-plan license-report no-recursion:lib:no-recursion
+              } >"no-recursion/docs/license-report.md"
+
+              git diff --exit-code */docs/license-report.md
             '';
           }
         ];

@@ -16,6 +16,7 @@ in {
     devPackages = [
       pkgs.cabal-install
       pkgs.graphviz
+      pkgs.libz
     ];
   };
 
@@ -51,6 +52,7 @@ in {
       enable = true;
       ## Haskell formatter
       programs.ormolu.enable = true;
+      settings.formatter.prettier.excludes = ["*/docs/license-report.md"];
     };
     vale = {
       enable = true;
