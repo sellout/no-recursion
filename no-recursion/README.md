@@ -59,6 +59,12 @@ If both '"Recursion"' and `"NoRecursion"` annotations exist on the same name (or
 
 For more about how to use annotations, see [the GHC User’s Guide](https://downloads.haskell.org/ghc/latest/docs/users_guide/extending_ghc.html#source-annotations).
 
+## licensing
+
+This package is licensed under [The GNU AGPL 3.0 or later](./LICENSE). If you need a license for usage that isn’t covered under the AGPL, please contact [Greg Pfeil](mailto:greg@technomadic.org?subject=licensing%20no-recursion).
+
+When last checked, all transitive dependencies were licensed under [The 3-Clause BSD License](http://hackage.haskell.org/package/base-4.19.0.0/src/LICENSE). However, you should review the [license report](docs/license-report.md) for more details.
+
 ## comparisons
 
 Other projects similar to this one, and how they differ.

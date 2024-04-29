@@ -18,6 +18,7 @@ license-files:
   LICENSE
 extra-doc-files:
   README.md
+  docs/*
 tested-with:
   GHC == {
 --  GHCup   Nixpkgs
