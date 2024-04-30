@@ -226,6 +226,12 @@ test-suite annotations
     no-recursion,
   ghc-options:
     -fplugin NoRecursion
+  if impl(ghc < 8.0.1)
+    build-depends:
+      semigroups ^>= {0.20},
+    ghc-options:
+      -trust containers
+      -trust semigroups
   hs-source-dirs: tests
   main-is: test.hs
   other-modules:

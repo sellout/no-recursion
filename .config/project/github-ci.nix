@@ -45,26 +45,34 @@ in {
                   bounds = "";
                   ghc = "8.4.1";
                 }
-                ## Plugins are broken on Windows from GHC 8.6.1 to 8.6.4.
-                ## (See https://gitlab.haskell.org/ghc/ghc/-/issues/15700)
-                {
-                  ghc = "8.6.1";
-                  os = "windows-2022";
-                }
               ]
-              ## These fail to build hsc2hs, perhaps related to
-              ## https://stackoverflow.com/questions/32740172/unresolved-stdio-common-vsprintf-s-what-library-has-this.
               ++ map (ghc: {
                 inherit ghc;
                 os = "windows-2022";
-              }) ["7.10.3" "8.0.2" "8.2.2"];
+              }) [
+                ## These fail to build hsc2hs, perhaps related to
+                ## https://stackoverflow.com/questions/32740172/unresolved-stdio-common-vsprintf-s-what-library-has-this.
+                "7.10.3"
+                "8.0.2"
+                "8.2.2"
+                ## Plugins are broken on Windows from GHC 8.6.1 to 8.6.4.
+                ## (See https://gitlab.haskell.org/ghc/ghc/-/issues/15700)
+                "8.6.1"
+                ## This version has unknown flakiness on Windows.
+                "8.8.1"
+                ## GHC 8.10.1 hs a flaky failure with an access violation on
+                ## Windows. (See
+                ## https://gitlab.haskell.org/ghc/ghc/-/issues/17926)
+                "8.10.1"
+              ];
             include =
-              ## These replace the excluded 8.6.1/windows-2022 above.
-              map (bounds: {
-                inherit bounds;
-                ghc = "8.6.5";
-                os = "windows-2022";
-              }) ["--prefer-oldest" ""];
+              ## These replace the excluded windows-2022 jobs above.
+              lib.concatMap (ghc:
+                map (bounds: {
+                  inherit bounds ghc;
+                  os = "windows-2022";
+                }) ["--prefer-oldest" ""])
+              ["8.6.5" "8.8.2" "8.10.2"];
           };
         };
         runs-on = "\${{ matrix.os }}";
