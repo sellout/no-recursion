@@ -190,6 +190,9 @@ library
     ghc-options:
       -trust containers
       -trust semigroups
+  if impl(ghc >= 9.10.1)
+    ghc-options:
+      -trust ghc-internal
   exposed-modules:
     NoRecursion
 
