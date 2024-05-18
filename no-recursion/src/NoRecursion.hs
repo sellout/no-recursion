@@ -45,7 +45,7 @@ defaultPurePlugin =
 defaultPurePlugin = Plugins.defaultPlugin
 #endif
 
--- | The entrypoint for the `NoRecursion` plugin.
+-- | The entrypoint for the "NoRecursion" plugin.
 plugin :: Plugins.Plugin
 plugin = defaultPurePlugin {Plugins.installCoreToDos = \_opts -> pure . install}
 
