@@ -144,6 +144,9 @@ common defaults
       -Wno-missing-poly-kind-signatures
       -- Inference good.
       -Wno-missing-role-annotations
+  if impl(ghc >= 9.10.1)
+    ghc-options:
+      -trust ghc-internal
   default-extensions:
     DefaultSignatures
     FunctionalDependencies
@@ -192,18 +195,24 @@ library
 
 test-suite doctests
   import: defaults
-  type: exitcode-stdio-1.0
   hs-source-dirs: tests
-  main-is: doctests.hs
-  build-depends:
-    doctest ^>= {0.16.0, 0.18.1, 0.20.1, 0.21.1, 0.22.2},
-    no-recursion,
+  -- doctest doesn’t yet support GHC 9.10
+  if impl(ghc < 9.10.1)
+    type: exitcode-stdio-1.0
+    main-is: doctests.hs
+    build-depends:
+      doctest ^>= {0.16.0, 0.18.1, 0.20.1, 0.21.1, 0.22.2},
+      no-recursion,
+  else
+    type: exitcode-stdio-1.0
+    main-is: skipped.hs
   -- TODO: The sections below here are necessary because we don’t have control
   --       over the generated `Build_doctests.hs` file. So we have to silence
   --       all of its warnings one way or another.
   if impl(ghc >= 8.0.1)
     ghc-options:
       -Wno-missing-import-lists
+      -- This used to warn even when `Safe` was explicit.
       -Wno-safe
   else
     build-depends:
@@ -217,7 +226,6 @@ test-suite doctests
       -Wno-missing-export-lists
   if impl(ghc >= 8.8.1)
     ghc-options:
-      -- This used to warn even when `Safe` was explicit.
       -Wno-missing-deriving-strategies
   default-extensions:
     -- Since we can’t add `{-# LANGUAGE Safe -#}` to the generated
