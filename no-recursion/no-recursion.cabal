@@ -1,7 +1,7 @@
 cabal-version: 3.0
 
 name: no-recursion
-version: 0.1.1.0
+version: 0.1.2.0
 synopsis: A GHC plugin to remove support for recursion
 description: General recursion can be the cause of a lot of problems. This
              removes recursion from GHC, allowing you to guarantee you’re using
@@ -18,7 +18,7 @@ license-files:
   LICENSE
 extra-doc-files:
   README.md
-  docs/*
+  docs/*.md
 tested-with:
   GHC == {
 --  GHCup   Nixpkgs
@@ -33,35 +33,41 @@ tested-with:
     9.2.1,  9.2.8,
     9.4.1,  9.4.8,
     9.6.1,  9.6.2,
-            9.8.1
+            9.8.1,
+    9.10.1
   }
 
 source-repository head
   type: git
   location: https://github.com/sellout/no-recursion
 
--- This mimics the GHC2021 extension
--- (https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/control.html?highlight=doandifthenelse#extension-GHC2021),
+-- This mimics the GHC2024 extension
+-- (https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/control.html?highlight=doandifthenelse#extension-GHC2024),
 -- but supporting compilers back to GHC 7.10. If the oldest supported compiler
--- is GHC 9.2, then this stanza can be removed and `import: GHC2021` can be
--- replaced by `default-language: GHC2021`.
-common GHC2021
+-- is GHC 9.10, then this stanza can be removed and `import: GHC2024` can be
+-- replaced by `default-language: GHC2024`. If the oldest supported compiler is
+-- GHC 9.2, then this can be simplified by setting `default-language: GHC2021`
+-- and only including the extensions added by GHC2024.
+common GHC2024
   default-language: Haskell2010
   default-extensions:
     BangPatterns
     BinaryLiterals
     ConstraintKinds
+    DataKinds
     DeriveDataTypeable
     DeriveGeneric
     -- DeriveLift -- uncomment if the oldest supported version is GHC 8.10.1+
     DeriveTraversable
     -- DerivingStrategies -- uncomment if the oldest supported version is GHC 8.2.1+
+    DisambiguateRecordFields
     DoAndIfThenElse
     EmptyCase
     ExistentialQuantification
+    ExplicitNamespaces
     FlexibleContexts
     FlexibleInstances
-    GADTSyntax
+    GADTs
     GeneralizedNewtypeDeriving
     -- HexFloatLiterals -- uncomment if the oldest supported version is GHC 8.4.1+
     -- ImportQualifiedPost -- uncomment if the oldest supported version is GHC 8.10.1+
@@ -77,6 +83,7 @@ common GHC2021
     PolyKinds
     PostfixOperators
     RankNTypes
+    RoleAnnotations
     ScopedTypeVariables
     StandaloneDeriving
     -- StandaloneKindSignatures -- uncomment if the oldest supported version is GHC 8.10.1+
@@ -96,9 +103,9 @@ flag noisy-deprecations
     that’s deprecated.
 
 common defaults
-  import: GHC2021
+  import: GHC2024
   build-depends:
-    base ^>= {4.8.2, 4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0},
+    base ^>= {4.8.2, 4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0},
   ghc-options:
     -fpackage-trust
     -trust base
@@ -137,9 +144,11 @@ common defaults
       -Wno-missing-poly-kind-signatures
       -- Inference good.
       -Wno-missing-role-annotations
+  if impl(ghc >= 9.10.1)
+    ghc-options:
+      -trust ghc-internal
   default-extensions:
     DefaultSignatures
-    ExplicitNamespaces
     FunctionalDependencies
     LiberalTypeSynonyms
     -- replace with `LexicalNegation` if the oldest supported version is GHC 9.0.1+
@@ -166,38 +175,47 @@ common defaults
 custom-setup
   setup-depends:
     -- TODO: Remove `Cabal` dep once haskell/cabal#3751 is fixed.
-    Cabal ^>= {3.0.0, 3.2.0, 3.4.0, 3.6.0, 3.8.0, 3.10.0},
-    base ^>= {4.8.2, 4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0},
+    Cabal ^>= {3.0.0, 3.2.0, 3.4.0, 3.6.0, 3.8.0, 3.10.0, 3.12.0},
+    base ^>= {4.8.2, 4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0},
     cabal-doctest ^>= {1.0.0},
 
 library
   import: defaults
   hs-source-dirs: src
   build-depends:
-    ghc ^>= {7.10.3, 8.0.2, 8.2.2, 8.4.1, 8.6.1, 8.8.1, 8.10.1, 9.0.1, 9.2.1, 9.4.1, 9.6.1, 9.8.1},
+    ghc ^>= {7.10.3, 8.0.2, 8.2.2, 8.4.1, 8.6.1, 8.8.1, 8.10.1, 9.0.1, 9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1},
   if impl(ghc < 8.0.1)
     build-depends:
       semigroups ^>= {0.20},
     ghc-options:
       -trust containers
       -trust semigroups
+  if impl(ghc >= 9.10.1)
+    ghc-options:
+      -trust ghc-internal
   exposed-modules:
     NoRecursion
 
 test-suite doctests
   import: defaults
-  type: exitcode-stdio-1.0
   hs-source-dirs: tests
-  main-is: doctests.hs
-  build-depends:
-    doctest ^>= {0.16.0, 0.18.1, 0.20.1, 0.21.1, 0.22.2},
-    no-recursion,
+  -- doctest doesn’t yet support GHC 9.10
+  if impl(ghc < 9.10.1)
+    type: exitcode-stdio-1.0
+    main-is: doctests.hs
+    build-depends:
+      doctest ^>= {0.16.0, 0.18.1, 0.20.1, 0.21.1, 0.22.2},
+      no-recursion,
+  else
+    type: exitcode-stdio-1.0
+    main-is: skipped.hs
   -- TODO: The sections below here are necessary because we don’t have control
   --       over the generated `Build_doctests.hs` file. So we have to silence
   --       all of its warnings one way or another.
   if impl(ghc >= 8.0.1)
     ghc-options:
       -Wno-missing-import-lists
+      -- This used to warn even when `Safe` was explicit.
       -Wno-safe
   else
     build-depends:
@@ -211,7 +229,6 @@ test-suite doctests
       -Wno-missing-export-lists
   if impl(ghc >= 8.8.1)
     ghc-options:
-      -- This used to warn even when `Safe` was explicit.
       -Wno-missing-deriving-strategies
   default-extensions:
     -- Since we can’t add `{-# LANGUAGE Safe -#}` to the generated
