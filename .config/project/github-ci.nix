@@ -5,6 +5,7 @@ githubSystems: {
   ...
 }: let
   planName = "plan-\${{ runner.os }}-\${{ matrix.ghc }}\${{ matrix.bounds }}";
+  bounds = ["--prefer-oldest" ""];
   ## NB: `cabal-plan-bounds` doesn’t yet support GHC 9.8.
   ghc-version = "9.6.3";
   runs-on = "ubuntu-22.04";
@@ -23,9 +24,9 @@ in {
         strategy = {
           fail-fast = false;
           matrix = {
+            inherit bounds;
             ghc = self.lib.nonNixTestedGhcVersions;
             os = githubSystems;
-            bounds = ["--prefer-oldest" ""];
             exclude =
               [
                 ## GHCup can’t find this version for Linux.
@@ -57,14 +58,45 @@ in {
               ++ map (ghc: {
                 inherit ghc;
                 os = "windows-2022";
-              }) ["7.10.3" "8.0.2" "8.2.2"];
+              }) ["7.10.3" "8.0.2" "8.2.2"]
+              ## These builds are flaky.
+              ++ map (ghc: {
+                inherit ghc;
+                os = "windows-2022";
+              }) ["8.8.1" "8.10.1"];
+            ## These replace the some of the excluded builds above.
             include =
-              ## These replace the excluded 8.6.1/windows-2022 above.
               map (bounds: {
+                inherit bounds;
+                ghc = "7.10.3";
+                os = "ubuntu-20.04";
+              })
+              bounds
+              ++ [
+                {
+                  bounds = "--prefer-oldest";
+                  ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
+                  os = "windows-2022";
+                }
+              ]
+              ++ map (os: {
+                inherit os;
+                bounds = "";
+                ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
+              })
+              githubSystems
+              ++ map (bounds: {
                 inherit bounds;
                 ghc = "8.6.5";
                 os = "windows-2022";
-              }) ["--prefer-oldest" ""];
+              })
+              bounds
+              ++ lib.concatMap (bounds:
+                map (ghc: {
+                  inherit bounds ghc;
+                  os = "windows-2022";
+                }) ["8.8.4" "8.10.7"])
+              bounds;
           };
         };
         runs-on = "\${{ matrix.os }}";
