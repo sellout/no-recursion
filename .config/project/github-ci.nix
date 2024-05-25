@@ -53,6 +53,20 @@ in {
                   os = "windows-2022";
                 }
               ]
+              ## aarch64-darwin isn’t supported before GHC 9.2
+              ++ map (ghc: {
+                inherit ghc;
+                os = "macos-14";
+              }) [
+                "7.10.3"
+                "8.0.2"
+                "8.2.2"
+                "8.4.1"
+                "8.6.1"
+                "8.8.1"
+                "8.10.1"
+                "9.0.1"
+              ]
               ## These fail to build hsc2hs, perhaps related to
               ## https://stackoverflow.com/questions/32740172/unresolved-stdio-common-vsprintf-s-what-library-has-this.
               ++ map (ghc: {
@@ -84,7 +98,8 @@ in {
                 bounds = "";
                 ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
               })
-              githubSystems
+              ## No aarch64-darwin support in GHC 8.4
+              (lib.remove "macos-14" githubSystems)
               ++ map (bounds: {
                 inherit bounds;
                 ghc = "8.6.5";
