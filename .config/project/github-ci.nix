@@ -4,7 +4,7 @@ githubSystems: {
   self,
   ...
 }: let
-  planName = "plan-\${{ runner.os }}-\${{ matrix.ghc }}\${{ matrix.bounds }}";
+  planName = "plan-\${{ matrix.os }}-\${{ matrix.ghc }}\${{ matrix.bounds }}";
   bounds = ["--prefer-oldest" ""];
   ## NB: `cabal-plan-bounds` doesn’t yet support GHC 9.8.
   ghc-version = "9.6.3";
@@ -119,7 +119,7 @@ in {
                 ''${{ steps.setup-haskell-cabal.outputs.cabal-store }}
                 dist-newstyle
               '';
-              key = "\${{ runner.os }}-\${{ matrix.ghc }}-\${{ hashFiles('cabal.project.freeze') }}";
+              key = "\${{ matrix.os }}-\${{ matrix.ghc }}-\${{ hashFiles('cabal.project.freeze') }}";
             };
           }
           ## NB: The `doctests` suites don’t seem to get built without
@@ -230,7 +230,7 @@ in {
           {
             run = ''
               mkdir -p dist-newstyle/cache
-              mv plans/plan-''${{ runner.os }}-9.8.1.json dist-newstyle/cache/plan.json
+              mv plans/plan-${runs-on}-9.8.1.json dist-newstyle/cache/plan.json
             '';
           }
           {
