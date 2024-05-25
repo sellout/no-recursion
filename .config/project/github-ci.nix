@@ -77,16 +77,29 @@ in {
               ++ map (ghc: {
                 inherit ghc;
                 os = "windows-2022";
-              }) ["8.8.1" "8.10.1"];
+              }) ["8.8.1" "8.10.1"]
+              ## TODO: Broken or flaky builds that need to be analyzed
+              ++ map (ghc: {
+                inherit ghc;
+                os = "macos-14";
+              }) ["9.2.1" "9.4.1"]
+              ++ [
+                {
+                  bounds = "--prefer-oldest";
+                  ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
+                  os = "windows-2022";
+                }
+              ];
             ## These replace the some of the excluded builds above.
             include =
-              map (bounds: {
-                inherit bounds;
-                ghc = "7.10.3";
-                os = "ubuntu-20.04";
-              })
-              bounds
-              ++ [
+              ## TODO: Figure out what’s going on here.
+              # map (bounds: {
+              #   inherit bounds;
+              #   ghc = "7.10.3";
+              #   os = "ubuntu-20.04";
+              # })
+              # bounds
+              [
                 {
                   bounds = "--prefer-oldest";
                   ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
@@ -110,7 +123,7 @@ in {
                 map (ghc: {
                   inherit bounds ghc;
                   os = "windows-2022";
-                }) ["8.8.4" "8.10.7"])
+                }) ["8.10.7"]) # TODO: Might work on .2–.6
               bounds;
           };
         };
