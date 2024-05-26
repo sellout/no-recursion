@@ -4,7 +4,8 @@ githubSystems: {
   self,
   ...
 }: let
-  planName = "plan-\${{ runner.os }}-\${{ matrix.ghc }}\${{ matrix.bounds }}";
+  planName = "plan-\${{ matrix.os }}-\${{ matrix.ghc }}\${{ matrix.bounds }}";
+  bounds = ["--prefer-oldest" ""];
   ## NB: `cabal-plan-bounds` doesn’t yet support GHC 9.8.
   ghc-version = "9.6.3";
   runs-on = "ubuntu-22.04";
@@ -23,9 +24,9 @@ in {
         strategy = {
           fail-fast = false;
           matrix = {
+            inherit bounds;
             ghc = self.lib.nonNixTestedGhcVersions;
             os = githubSystems;
-            bounds = ["--prefer-oldest" ""];
             exclude =
               [
                 ## GHCup can’t find this version for Linux.
@@ -52,19 +53,78 @@ in {
                   os = "windows-2022";
                 }
               ]
+              ## aarch64-darwin isn’t supported before GHC 9.2
+              ++ map (ghc: {
+                inherit ghc;
+                os = "macos-14";
+              }) [
+                "7.10.3"
+                "8.0.2"
+                "8.2.2"
+                "8.4.1"
+                "8.6.1"
+                "8.8.1"
+                "8.10.1"
+                "9.0.1"
+              ]
               ## These fail to build hsc2hs, perhaps related to
               ## https://stackoverflow.com/questions/32740172/unresolved-stdio-common-vsprintf-s-what-library-has-this.
               ++ map (ghc: {
                 inherit ghc;
                 os = "windows-2022";
-              }) ["7.10.3" "8.0.2" "8.2.2"];
+              }) ["7.10.3" "8.0.2" "8.2.2"]
+              ## These builds are flaky.
+              ++ map (ghc: {
+                inherit ghc;
+                os = "windows-2022";
+              }) ["8.8.1" "8.10.1"]
+              ## TODO: Broken or flaky builds that need to be analyzed
+              ++ map (ghc: {
+                inherit ghc;
+                os = "macos-14";
+              }) ["9.2.1" "9.4.1"]
+              ++ [
+                {
+                  bounds = "--prefer-oldest";
+                  ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
+                  os = "windows-2022";
+                }
+              ];
+            ## These replace the some of the excluded builds above.
             include =
-              ## These replace the excluded 8.6.1/windows-2022 above.
-              map (bounds: {
+              ## TODO: Figure out what’s going on here.
+              # map (bounds: {
+              #   inherit bounds;
+              #   ghc = "7.10.3";
+              #   os = "ubuntu-20.04";
+              # })
+              # bounds
+              [
+                {
+                  bounds = "--prefer-oldest";
+                  ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
+                  os = "windows-2022";
+                }
+              ]
+              ++ map (os: {
+                inherit os;
+                bounds = "";
+                ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
+              })
+              ## No aarch64-darwin support in GHC 8.4
+              (lib.remove "macos-14" githubSystems)
+              ++ map (bounds: {
                 inherit bounds;
                 ghc = "8.6.5";
                 os = "windows-2022";
-              }) ["--prefer-oldest" ""];
+              })
+              bounds
+              ++ lib.concatMap (bounds:
+                map (ghc: {
+                  inherit bounds ghc;
+                  os = "windows-2022";
+                }) ["8.10.7"]) # TODO: Might work on .2–.6
+              bounds;
           };
         };
         runs-on = "\${{ matrix.os }}";
@@ -87,7 +147,7 @@ in {
                 ''${{ steps.setup-haskell-cabal.outputs.cabal-store }}
                 dist-newstyle
               '';
-              key = "\${{ runner.os }}-\${{ matrix.ghc }}-\${{ hashFiles('cabal.project.freeze') }}";
+              key = "\${{ matrix.os }}-\${{ matrix.ghc }}-\${{ hashFiles('cabal.project.freeze') }}";
             };
           }
           ## NB: The `doctests` suites don’t seem to get built without
@@ -198,7 +258,7 @@ in {
           {
             run = ''
               mkdir -p dist-newstyle/cache
-              mv plans/plan-''${{ runner.os }}-9.8.1.json dist-newstyle/cache/plan.json
+              mv plans/plan-${runs-on}-9.8.1.json dist-newstyle/cache/plan.json
             '';
           }
           {

@@ -7,7 +7,12 @@
   supportedSystems,
   ...
 }: let
-  githubSystems = ["macos-13" "ubuntu-22.04" "windows-2022"];
+  githubSystems = [
+    "macos-13" # x86_64-darwin
+    "macos-14" # aarch64-darwin
+    "ubuntu-22.04"
+    "windows-2022"
+  ];
 in {
   project = {
     name = "no-recursion";
