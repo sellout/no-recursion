@@ -198,17 +198,15 @@ library
 
 test-suite doctests
   import: defaults
+  type: exitcode-stdio-1.0
   hs-source-dirs: tests
-  -- doctest doesn’t yet support GHC 9.10
-  if impl(ghc < 9.10.1)
-    type: exitcode-stdio-1.0
-    main-is: doctests.hs
-    build-depends:
-      doctest ^>= {0.16.0, 0.18.1, 0.20.1, 0.21.1, 0.22.2},
-      no-recursion,
-  else
-    type: exitcode-stdio-1.0
-    main-is: skipped.hs
+  main-is: doctests.hs
+  build-depends:
+    doctest ^>= {0.16.0, 0.18.1, 0.20.1, 0.21.1, 0.22.2},
+    no-recursion,
+  -- doctest doesn’t yet support GHC 9.10 (sol/doctest#421)
+  if impl(ghc >= 9.10.1)
+    buildable: False
   -- TODO: The sections below here are necessary because we don’t have control
   --       over the generated `Build_doctests.hs` file. So we have to silence
   --       all of its warnings one way or another.
