@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog 1.1](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to the [Haskell Package Versioning Policy](https://pvp.haskell.org/).
 
+## [0.1.2.1] - 2024-05-26
+
+### Fixed
+
+- the license report to reflect the GHC 9.10 build
+
 ## [0.1.2.0] - 2024-05-19
 
 ### Added

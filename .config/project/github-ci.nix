@@ -258,7 +258,7 @@ in {
           {
             run = ''
               mkdir -p dist-newstyle/cache
-              mv plans/plan-${runs-on}-9.8.1.json dist-newstyle/cache/plan.json
+              mv plans/plan-${runs-on}-9.10.1.json dist-newstyle/cache/plan.json
             '';
           }
           {
