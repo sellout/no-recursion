@@ -1,7 +1,7 @@
 cabal-version: 3.0
 
 name: no-recursion
-version: 0.1.2.1
+version: 0.1.2.2
 synopsis: A GHC plugin to remove support for recursion
 description: General recursion can be the cause of a lot of problems. This
              removes recursion from GHC, allowing you to guarantee you’re using
@@ -17,23 +17,23 @@ license: AGPL-3.0-or-later
 license-files:
   LICENSE
 extra-doc-files:
+  CHANGELOG.md
   README.md
   docs/*.md
 tested-with:
   GHC == {
---  GHCup   Nixpkgs
     7.10.3,
     8.0.2,
     8.2.2,
     8.4.1,
     8.6.1,
-    8.8.1,  8.8.4,
+    8.8.1,
     8.10.1, 8.10.7,
-    9.0.1,  9.0.2,
-    9.2.1,  9.2.8,
-    9.4.1,  9.4.8,
-    9.6.1,  9.6.2,
-            9.8.1,
+    9.0.1, 9.0.2,
+    9.2.1, 9.2.5,
+    9.4.1, 9.4.5,
+    9.6.1, 9.6.3,
+    9.8.1,
     9.10.1
   }
 
@@ -91,7 +91,6 @@ common GHC2024
     -- TypeApplications -- uncomment if the oldest supported version is GHC 8.0.1+
     TypeOperators
     UnicodeSyntax
-    NoExplicitNamespaces
 
 flag noisy-deprecations
   description:
@@ -106,9 +105,6 @@ common defaults
   import: GHC2024
   build-depends:
     base ^>= {4.8.2, 4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0},
-  ghc-options:
-    -fpackage-trust
-    -trust base
   if impl(ghc >= 8.0.1)
     ghc-options:
       -Weverything
@@ -132,8 +128,6 @@ common defaults
       -Wno-inferred-safe-imports
       -- We support GHC versions without qualified-post.
       -Wno-prepositive-qualified-module
-      -- `-trust` triggers this warning when applied to transitive dependencies.
-      -Wno-unused-packages
   if impl(ghc >= 9.2.1)
     ghc-options:
       -- We support GHC versions without kind signatures.
@@ -144,9 +138,6 @@ common defaults
       -Wno-missing-poly-kind-signatures
       -- Inference good.
       -Wno-missing-role-annotations
-  if impl(ghc >= 9.10.1)
-    ghc-options:
-      -trust ghc-internal
   default-extensions:
     DefaultSignatures
     FunctionalDependencies
@@ -175,7 +166,7 @@ common defaults
 custom-setup
   setup-depends:
     -- TODO: Remove `Cabal` dep once haskell/cabal#3751 is fixed.
-    Cabal ^>= {3.0.0, 3.2.0, 3.4.0, 3.6.0, 3.8.0, 3.10.0, 3.12.0},
+    Cabal ^>= {3.0.0, 3.2.0, 3.4.0, 3.6.0, 3.8.0, 3.10.0},
     base ^>= {4.8.2, 4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0},
     cabal-doctest ^>= {1.0.0},
 
@@ -187,43 +178,36 @@ library
   if impl(ghc < 8.0.1)
     build-depends:
       semigroups ^>= {0.20},
-    ghc-options:
-      -trust containers
-      -trust semigroups
-  if impl(ghc >= 9.10.1)
-    ghc-options:
-      -trust ghc-internal
   exposed-modules:
     NoRecursion
 
 test-suite doctests
   import: defaults
+  type: exitcode-stdio-1.0
   hs-source-dirs: tests
-  -- doctest doesn’t yet support GHC 9.10
-  if impl(ghc < 9.10.1)
-    type: exitcode-stdio-1.0
-    main-is: doctests.hs
+  main-is: doctests.hs
+  build-depends:
+    doctest ^>= {0.16.0, 0.18.1, 0.20.0, 0.21.1, 0.22.2},
+    no-recursion,
+  if impl(ghc < 8.0.1)
     build-depends:
-      doctest ^>= {0.16.0, 0.18.1, 0.20.1, 0.21.1, 0.22.2},
-      no-recursion,
-  else
-    type: exitcode-stdio-1.0
-    main-is: skipped.hs
+      semigroups ^>= {0.20},
+  if impl(ghc >= 8.10.1)
+    ghc-options:
+      -- `doctest` requires the package containing the doctests as a dependency
+      -- to ensure it gets built before this test-suite, even though the package
+      -- appears to be unused.
+      -Wno-unused-packages
   -- TODO: The sections below here are necessary because we don’t have control
   --       over the generated `Build_doctests.hs` file. So we have to silence
   --       all of its warnings one way or another.
   if impl(ghc >= 8.0.1)
     ghc-options:
       -Wno-missing-import-lists
-      -- This used to warn even when `Safe` was explicit.
       -Wno-safe
   else
-    build-depends:
-      semigroups ^>= {0.20},
     ghc-options:
       -fno-warn-missing-import-lists
-      -trust containers
-      -trust semigroups
   if impl(ghc >= 8.4.1)
     ghc-options:
       -Wno-missing-export-lists

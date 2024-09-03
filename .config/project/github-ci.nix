@@ -1,13 +1,21 @@
-githubSystems: {
+## TODO: Map `systems` and `exclude` from Nixier values – perhaps flake-utils
+##       systems, and a bool for `--prefer-oldest`?
+{
+  systems,
+  packages,
+  ## TODO: Prefer ignoring most known failures once
+  ##       https://github.com/orgs/community/discussions/15452 is resolved.
+  exclude ? [],
+  include ? [],
+  defaultGhcVersion,
+  latestGhcVersion,
+}: {
   lib,
   pkgs,
   self,
   ...
 }: let
   planName = "plan-\${{ matrix.os }}-\${{ matrix.ghc }}\${{ matrix.bounds }}";
-  bounds = ["--prefer-oldest" ""];
-  ## NB: `cabal-plan-bounds` doesn’t yet support GHC 9.8.
-  ghc-version = "9.6.3";
   runs-on = "ubuntu-22.04";
 in {
   services.github.workflow."build.yml".text = lib.generators.toYAML {} {
@@ -24,9 +32,10 @@ in {
         strategy = {
           fail-fast = false;
           matrix = {
-            inherit bounds;
+            inherit include;
+            bounds = ["--prefer-oldest" ""];
             ghc = self.lib.nonNixTestedGhcVersions;
-            os = githubSystems;
+            os = systems;
             exclude =
               [
                 ## GHCup can’t find this version for Linux.
@@ -34,97 +43,14 @@ in {
                   ghc = "7.10.3";
                   os = "ubuntu-22.04";
                 }
-                ## These fail to build Cabal-syntax – since it works on most
-                ## OSes with `--prefer-oldest`, it may be a dependency version
-                ## issue.
-                {
-                  bounds = "--prefer-oldest";
-                  ghc = "8.4.1";
-                  os = "windows-2022";
-                }
-                {
-                  bounds = "";
-                  ghc = "8.4.1";
-                }
-                ## Plugins are broken on Windows from GHC 8.6.1 to 8.6.4.
-                ## (See https://gitlab.haskell.org/ghc/ghc/-/issues/15700)
-                {
-                  ghc = "8.6.1";
-                  os = "windows-2022";
-                }
               ]
-              ## aarch64-darwin isn’t supported before GHC 9.2
+              ## GitHub can’t install GHC older than 9.4 on macos-14.
               ++ map (ghc: {
                 inherit ghc;
                 os = "macos-14";
-              }) [
-                "7.10.3"
-                "8.0.2"
-                "8.2.2"
-                "8.4.1"
-                "8.6.1"
-                "8.8.1"
-                "8.10.1"
-                "9.0.1"
-              ]
-              ## These fail to build hsc2hs, perhaps related to
-              ## https://stackoverflow.com/questions/32740172/unresolved-stdio-common-vsprintf-s-what-library-has-this.
-              ++ map (ghc: {
-                inherit ghc;
-                os = "windows-2022";
-              }) ["7.10.3" "8.0.2" "8.2.2"]
-              ## These builds are flaky.
-              ++ map (ghc: {
-                inherit ghc;
-                os = "windows-2022";
-              }) ["8.8.1" "8.10.1"]
-              ## TODO: Broken or flaky builds that need to be analyzed
-              ++ map (ghc: {
-                inherit ghc;
-                os = "macos-14";
-              }) ["9.2.1" "9.4.1"]
-              ++ [
-                {
-                  bounds = "--prefer-oldest";
-                  ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
-                  os = "windows-2022";
-                }
-              ];
-            ## These replace the some of the excluded builds above.
-            include =
-              ## TODO: Figure out what’s going on here.
-              # map (bounds: {
-              #   inherit bounds;
-              #   ghc = "7.10.3";
-              #   os = "ubuntu-20.04";
-              # })
-              # bounds
-              [
-                {
-                  bounds = "--prefer-oldest";
-                  ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
-                  os = "windows-2022";
-                }
-              ]
-              ++ map (os: {
-                inherit os;
-                bounds = "";
-                ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
-              })
-              ## No aarch64-darwin support in GHC 8.4
-              (lib.remove "macos-14" githubSystems)
-              ++ map (bounds: {
-                inherit bounds;
-                ghc = "8.6.5";
-                os = "windows-2022";
-              })
-              bounds
-              ++ lib.concatMap (bounds:
-                map (ghc: {
-                  inherit bounds ghc;
-                  os = "windows-2022";
-                }) ["8.10.7"]) # TODO: Might work on .2–.6
-              bounds;
+              }) (builtins.filter (ghc: lib.versionOlder ghc "9.4")
+                self.lib.nonNixTestedGhcVersions)
+              ++ exclude;
           };
         };
         runs-on = "\${{ matrix.os }}";
@@ -174,12 +100,11 @@ in {
         steps = [
           {uses = "actions/checkout@v4";}
           {
-            ## TODO: Uses deprecated Node.js, see haskell-actions/setup#72
             uses = "haskell-actions/setup@v2";
             id = "setup-haskell-cabal";
             "with" = {
-              inherit ghc-version;
               cabal-version = pkgs.cabal-install.version;
+              ghc-version = defaultGhcVersion;
             };
           }
           {
@@ -237,12 +162,11 @@ in {
         steps = [
           {uses = "actions/checkout@v4";}
           {
-            ## TODO: Uses deprecated Node.js, see haskell-actions/setup#72
             uses = "haskell-actions/setup@v2";
             id = "setup-haskell-cabal";
             "with" = {
-              inherit ghc-version;
               cabal-version = pkgs.cabal-install.version;
+              ghc-version = defaultGhcVersion;
             };
           }
           {run = "cabal install cabal-plan -flicense-report";}
@@ -258,18 +182,20 @@ in {
           {
             run = ''
               mkdir -p dist-newstyle/cache
-              mv plans/plan-${runs-on}-9.10.1.json dist-newstyle/cache/plan.json
+              mv plans/plan-${runs-on}-${latestGhcVersion}.json dist-newstyle/cache/plan.json
             '';
           }
           {
             name = "check if licenses have changed";
             run = ''
-              {
-                echo "**NB**: This captures the licenses associated with a particular set of dependency versions. If your own build solves differently, it’s possible that the licenses may have changed, or even that the set of dependencies itself is different. Please make sure you run [\`cabal-plan license-report\`](https://hackage.haskell.org/package/cabal-plan) on your own components rather than assuming this is authoritative."
-                echo
-                cabal-plan license-report no-recursion:lib:no-recursion
-              } >"no-recursion/docs/license-report.md"
-
+              ${lib.toShellVar "packages" packages}
+              for package in "''${!packages[@]}"; do
+                {
+                  echo "**NB**: This captures the licenses associated with a particular set of dependency versions. If your own build solves differently, it’s possible that the licenses may have changed, or even that the set of dependencies itself is different. Please make sure you run [\`cabal-plan license-report\`](https://hackage.haskell.org/package/cabal-plan) on your own components rather than assuming this is authoritative."
+                  echo
+                  cabal-plan license-report "$package:lib:$package"
+                } >"''${packages[$package]}/docs/license-report.md"
+              done
               git diff --exit-code */docs/license-report.md
             '';
           }
