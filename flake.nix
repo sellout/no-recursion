@@ -35,10 +35,11 @@
     flaky-haskell,
     nixpkgs,
     self,
+    systems,
   }: let
     pname = "no-recursion";
 
-    supportedSystems = flaky.lib.defaultSystems;
+    supportedSystems = import systems;
 
     cabalPackages = pkgs: hpkgs:
       flaky-haskell.lib.cabalProject2nix
@@ -165,9 +166,6 @@
           ];
       };
     }
-    ## NB: This uses `eachSystem defaultSystems` instead of `eachDefaultSystem`
-    ##     because users often have to locally replace `defaultSystems` with
-    ##     their specific system to avoid issues with IFD.
     // flake-utils.lib.eachSystem supportedSystems
     (system: let
       pkgs = import nixpkgs {
@@ -215,7 +213,7 @@
           hpkgs.haskell-language-server);
 
       projectConfigurations =
-        flaky.lib.projectConfigurations.default {inherit pkgs self;};
+        flaky.lib.projectConfigurations.haskell {inherit pkgs self;};
 
       checks = self.projectConfigurations.${system}.checks;
       formatter = self.projectConfigurations.${system}.formatter;
@@ -227,6 +225,7 @@
 
     flake-utils.follows = "flaky/flake-utils";
     nixpkgs.follows = "flaky/nixpkgs";
+    systems.follows = "flaky/systems";
 
     flaky-haskell = {
       inputs.flaky.follows = "flaky";
