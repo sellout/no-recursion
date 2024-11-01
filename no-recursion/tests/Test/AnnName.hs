@@ -1,12 +1,12 @@
 {-# LANGUAGE Unsafe #-}
 
-module Test.Name
+module Test.AnnName
   ( recDef,
     nonRecDef,
   )
 where
 
-import safe "base" Control.Category (Category (id))
+import safe "base" Control.Category (id)
 
 recDef :: a -> b
 recDef = recDef
