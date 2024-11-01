@@ -62,6 +62,8 @@ If both '"Recursion"' and `"NoRecursion"` annotations exist on the same name (or
 
 For more about how to use annotations, see [the GHC User’s Guide](https://downloads.haskell.org/ghc/latest/docs/users_guide/extending_ghc.html#source-annotations).
 
+To avoid breaking Safe Haskell by using `{-# ANN module "Recursion" #-}`, you can instead use `{-# OPTIONS_GHC -fplugin-opt=NoRecursion:allow-recursion #-}`
+
 ## versioning
 
 This project largely follows the [Haskell Package Versioning Policy](https://pvp.haskell.org/) (PVP), but is more strict in some ways.
