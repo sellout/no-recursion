@@ -1,7 +1,7 @@
 cabal-version: 3.0
 
 name: no-recursion
-version: 0.1.2.2
+version: 0.1.2.3
 synopsis: A GHC plugin to remove support for recursion
 description: General recursion can be the cause of a lot of problems. This
              removes recursion from GHC, allowing you to guarantee you’re using
@@ -166,7 +166,7 @@ common defaults
 custom-setup
   setup-depends:
     -- TODO: Remove `Cabal` dep once haskell/cabal#3751 is fixed.
-    Cabal ^>= {3.0.0, 3.2.0, 3.4.0, 3.6.0, 3.8.0, 3.10.0},
+    Cabal ^>= {3.0.0, 3.2.0, 3.4.0, 3.6.0, 3.8.0, 3.10.0, 3.12.0},
     base ^>= {4.8.2, 4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0},
     cabal-doctest ^>= {1.0.0},
 
@@ -187,7 +187,7 @@ test-suite doctests
   hs-source-dirs: tests
   main-is: doctests.hs
   build-depends:
-    doctest ^>= {0.16.0, 0.18.1, 0.20.0, 0.21.1, 0.22.2},
+    doctest ^>= {0.16.0, 0.18.1, 0.20.0, 0.21.1, 0.22.2, 0.24.0},
     no-recursion,
   if impl(ghc < 8.0.1)
     build-depends:
