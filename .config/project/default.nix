@@ -82,7 +82,7 @@
       ++ map (ghc: {
         inherit ghc;
         os = "windows-2022";
-      }) ["7.10.3" "8.0.2" "8.2.2"]
+      }) ["8.0.2" "8.2.2"]
       ## TODO: Broken or flaky builds that need to be analyzed
       ++ map (ghc: {
         inherit ghc;
@@ -98,13 +98,6 @@
     include = let
       bounds = ["--prefer-oldest" ""];
     in
-      ## TODO: Figure out what’s going on here.
-      # ++ map (bounds: {
-      #   inherit bounds;
-      #   ghc = "7.10.3";
-      #   os = "ubuntu-20.04";
-      # })
-      # bounds
       [
         {
           bounds = "--prefer-oldest";
