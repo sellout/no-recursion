@@ -88,6 +88,14 @@
         inherit ghc;
         os = "windows-2022";
       }) ["8.8.1" "8.10.1"]
+      ## TODO: These fail when running doctests.
+      ##     > <command line>: can't load framework: Security (not found)
+      ##     > doctests: fd:5: hGetLine: end of file
+      ++ map (ghc: {
+        inherit ghc;
+        bounds = "";
+        os = "macos-13";
+      }) ["8.6.1" "8.8.1" "8.10.1"]
       ++ [
         {
           ghc = "9.4.1";
