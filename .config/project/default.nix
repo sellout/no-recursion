@@ -6,22 +6,13 @@
   self,
   supportedSystems,
   ...
-}: let
-  githubSystems = [
-    "macos-13" # x86_64-darwin
-    "macos-14" # aarch64-darwin
-    "ubuntu-24.04" # x86_64-linux
-    "windows-2022"
-  ];
-in {
+}: {
   project = {
     name = "no-recursion";
     summary = "A GHC plugin to remove support for recursion";
   };
 
-  imports = [
-    ./hlint.nix
-  ];
+  imports = [./hlint.nix];
 
   ## dependency management
   services.renovate.enable = true;
@@ -49,34 +40,21 @@ in {
   ##        Need to improve module merging.
   services.github.settings.branches.main.protection.required_status_checks.contexts =
     lib.mkForce
-    (["check-bounds"]
+    ([
+        "All Garnix checks"
+        "check-bounds"
+        "check-licenses"
+      ]
       ++ lib.concatMap (sys:
         lib.concatMap (ghc: [
           "build (${ghc}, ${sys})"
           "build (--prefer-oldest, ${ghc}, ${sys})"
         ])
         self.lib.nonNixTestedGhcVersions)
-      githubSystems
-      ++ flaky.lib.forGarnixSystems supportedSystems (sys:
-        lib.concatMap (version: let
-          ghc = self.lib.nixifyGhcVersion version;
-        in [
-          "devShell ${ghc} [${sys}]"
-          "package ${ghc}_all [${sys}]"
-        ])
-        (self.lib.testedGhcVersions sys)
-        ++ [
-          "homeConfig ${sys}-${config.project.name}-example"
-          "package default [${sys}]"
-          ## FIXME: These are duplicated from the base config
-          "check formatter [${sys}]"
-          "check project-manager-files [${sys}]"
-          "check vale [${sys}]"
-          "devShell default [${sys}]"
-        ]));
+      self.lib.githubSystems);
   services.haskell-ci = {
     inherit (self.lib) defaultGhcVersion;
-    systems = githubSystems;
+    systems = self.lib.githubSystems;
     ghcVersions = self.lib.nonNixTestedGhcVersions;
     exclude =
       [
@@ -104,12 +82,20 @@ in {
       ++ map (ghc: {
         inherit ghc;
         os = "windows-2022";
-      }) ["7.10.3" "8.0.2" "8.2.2"]
+      }) ["8.0.2" "8.2.2"]
       ## TODO: Broken or flaky builds that need to be analyzed
       ++ map (ghc: {
         inherit ghc;
         os = "windows-2022";
       }) ["8.8.1" "8.10.1"]
+      ## TODO: These fail when running doctests.
+      ##     > <command line>: can't load framework: Security (not found)
+      ##     > doctests: fd:5: hGetLine: end of file
+      ++ map (ghc: {
+        inherit ghc;
+        bounds = "";
+        os = "macos-13";
+      }) ["8.6.1" "8.8.1" "8.10.1"]
       ++ [
         {
           ghc = "9.4.1";
@@ -120,13 +106,6 @@ in {
     include = let
       bounds = ["--prefer-oldest" ""];
     in
-      ## TODO: Figure out what’s going on here.
-      # ++ map (bounds: {
-      #   inherit bounds;
-      #   ghc = "7.10.3";
-      #   os = "ubuntu-20.04";
-      # })
-      # bounds
       [
         {
           bounds = "--prefer-oldest";
@@ -140,7 +119,7 @@ in {
         ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
       })
       ## No aarch64-darwin support in GHC 8.4
-      (lib.remove "macos-14" githubSystems)
+      (lib.remove "macos-14" self.lib.githubSystems)
       ++ map (bounds: {
         inherit bounds;
         ghc = "8.6.5";
@@ -152,6 +131,7 @@ in {
           inherit bounds ghc;
           os = "windows-2022";
         }) ["8.10.7"]) # TODO: Might work on .2–.6
+      
       bounds;
     cabalPackages = {"${config.project.name}" = config.project.name;};
     latestGhcVersion = "9.10.1";

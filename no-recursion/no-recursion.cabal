@@ -1,7 +1,7 @@
 cabal-version: 3.0
 
 name: no-recursion
-version: 0.1.2.3
+version: 0.2.0.0
 synopsis: A GHC plugin to remove support for recursion
 description: General recursion can be the cause of a lot of problems. This
              removes recursion from GHC, allowing you to guarantee you’re using
@@ -22,7 +22,6 @@ extra-doc-files:
   docs/*.md
 tested-with:
   GHC == {
-    7.10.3,
     8.0.2,
     8.2.2,
     8.4.1,
@@ -43,7 +42,7 @@ source-repository head
 
 -- This mimics the GHC2024 extension
 -- (https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/control.html?highlight=doandifthenelse#extension-GHC2024),
--- but supporting compilers back to GHC 7.10. If the oldest supported compiler
+-- but supporting compilers back to GHC 8.0. If the oldest supported compiler
 -- is GHC 9.10, then this stanza can be removed and `import: GHC2024` can be
 -- replaced by `default-language: GHC2024`. If the oldest supported compiler is
 -- GHC 9.2, then this can be simplified by setting `default-language: GHC2021`
@@ -88,7 +87,7 @@ common GHC2024
     StandaloneDeriving
     -- StandaloneKindSignatures -- uncomment if the oldest supported version is GHC 8.10.1+
     TupleSections
-    -- TypeApplications -- uncomment if the oldest supported version is GHC 8.0.1+
+    TypeApplications
     TypeOperators
     UnicodeSyntax
 
@@ -104,24 +103,20 @@ flag noisy-deprecations
 common defaults
   import: GHC2024
   build-depends:
-    base ^>= {4.8.2, 4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0},
-  if impl(ghc >= 8.0.1)
+    base ^>= {4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0},
+  ghc-options:
+    -Weverything
+    -- This one just reports unfixable things, AFAICT.
+    -Wno-all-missed-specialisations
+    -- Type inference good.
+    -Wno-missing-local-signatures
+    -- Warns even when `Unsafe` is explicit, not inferred. See
+    -- https://gitlab.haskell.org/ghc/ghc/-/issues/16689
+    -Wno-unsafe
+  if impl(ghc < 8.8.1)
     ghc-options:
-      -Weverything
-      -- This one just reports unfixable things, AFAICT.
-      -Wno-all-missed-specialisations
-      -- Type inference good.
-      -Wno-missing-local-signatures
-      -- Warns even when `Unsafe` is explicit, not inferred. See
-      -- https://gitlab.haskell.org/ghc/ghc/-/issues/16689
-      -Wno-unsafe
-    if impl(ghc < 8.8.1)
-      ghc-options:
-        -- This used to warn even when `Safe` was explicit.
-        -Wno-safe
-  else
-    ghc-options:
-      -Wall
+      -- This used to warn even when `Safe` was explicit.
+      -Wno-safe
   if impl(ghc >= 8.10.1)
     ghc-options:
       -- If we didn’t allow inferred-safe imports, nothing would be `Safe`.
@@ -149,17 +144,15 @@ common defaults
     -- QualifiedDo - uncomment if the oldest supported version is GHC 9.0.1+
     RecursiveDo
     -- RequiredTypeArguments - uncomment if the oldest supported version is GHC 9.10.1+
-    -- TemplateHaskellQuotes - uncomment if the oldest supported version is GHC 8.0.1+
+    StrictData
+    TemplateHaskellQuotes
     TransformListComp
     NoGeneralizedNewtypeDeriving
     NoImplicitPrelude
     NoMonomorphismRestriction
     NoPatternGuards
     -- NoStarIsType - uncomment if the oldest supported version is GHC 8.6.1+
-    -- NoTypeApplications - uncomment if the oldest supported version is GHC 8.0.1+
-  if impl(ghc >= 8.0.1)
-    default-extensions:
-      StrictData
+    NoTypeApplications
   if flag(noisy-deprecations)
     cpp-options: -DSELLOUT_NOISY_DEPRECATIONS
 
@@ -174,10 +167,7 @@ library
   import: defaults
   hs-source-dirs: src
   build-depends:
-    ghc ^>= {7.10.3, 8.0.2, 8.2.2, 8.4.1, 8.6.1, 8.8.1, 8.10.1, 9.0.1, 9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1},
-  if impl(ghc < 8.0.1)
-    build-depends:
-      semigroups ^>= {0.20},
+    ghc ^>= {8.0.2, 8.2.2, 8.4.1, 8.6.1, 8.8.1, 8.10.1, 9.0.1, 9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1},
   exposed-modules:
     NoRecursion
 
@@ -187,11 +177,8 @@ test-suite doctests
   hs-source-dirs: tests
   main-is: doctests.hs
   build-depends:
-    doctest ^>= {0.16.0, 0.18.1, 0.20.0, 0.21.1, 0.22.2, 0.24.0},
+    doctest ^>= {0.16.0, 0.18.1, 0.20.1, 0.21.1, 0.22.2, 0.24.1},
     no-recursion,
-  if impl(ghc < 8.0.1)
-    build-depends:
-      semigroups ^>= {0.20},
   if impl(ghc >= 8.10.1)
     ghc-options:
       -- `doctest` requires the package containing the doctests as a dependency
@@ -201,13 +188,9 @@ test-suite doctests
   -- TODO: The sections below here are necessary because we don’t have control
   --       over the generated `Build_doctests.hs` file. So we have to silence
   --       all of its warnings one way or another.
-  if impl(ghc >= 8.0.1)
-    ghc-options:
-      -Wno-missing-import-lists
-      -Wno-safe
-  else
-    ghc-options:
-      -fno-warn-missing-import-lists
+  ghc-options:
+    -Wno-missing-import-lists
+    -Wno-safe
   if impl(ghc >= 8.4.1)
     ghc-options:
       -Wno-missing-export-lists
