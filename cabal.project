@@ -1,5 +1,9 @@
-flags:
-  -noisy-deprecations
+-- Tune the solver to improve the odds of finding a solution. This is useful for
+-- initializing and updating dependency bounds, but shouldn’t have an impact on
+-- regular usage, because the explicit bounds reduce the search space.
+max-backjumps: -1
+minimize-conflict-set: true
+reorder-goals: true
 
 program-options
   ghc-options:
@@ -8,4 +12,4 @@ program-options
 tests: True
 
 packages:
-  ./no-recursion/no-recursion.cabal
+  ./core/no-recursion.cabal

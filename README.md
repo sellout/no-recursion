@@ -1,6 +1,7 @@
 # NoRecursion
 
 [![built with garnix](https://img.shields.io/endpoint?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2Fsellout%2Fno-recursion)](https://garnix.io/repo/sellout/no-recursion)
+[![Nix CI](https://nix-ci.com/badge/gh:sellout:no-recursion)](https://nix-ci.com/gh:sellout:no-recursion)
 
 A GHC plugin to remove support for recursion
 
@@ -8,7 +9,7 @@ General recursion can be the cause of a lot of problems. This removes recursion 
 
 ## usage
 
-See [the plugin’s README](./no-recursion/README.md) for usage information.
+See [the plugin’s README](./core/README.md) for usage information.
 
 ## building
 
@@ -91,4 +92,4 @@ If you don’t use Nix, you will need to mention that in your PR so that one of 
 
 ## comparisons
 
-See [the package README](./no-recursion/README.md) for comparisons with other similar projects.
+See [the package README](./core/README.md) for comparisons with other similar projects.

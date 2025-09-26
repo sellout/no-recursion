@@ -29,11 +29,12 @@ tested-with:
     8.8.1,
     8.10.1, 8.10.7,
     9.0.1, 9.0.2,
-    9.2.1, 9.2.5,
-    9.4.1, 9.4.5,
+    9.2.1, 9.2.8,
+    9.4.1, 9.4.7,
     9.6.1, 9.6.3,
-    9.8.1,
-    9.10.1
+    9.8.1, 9.8.4,
+    9.10.1,
+    9.12.1
   }
 
 source-repository head
@@ -63,7 +64,6 @@ common GHC2024
     DoAndIfThenElse
     EmptyCase
     ExistentialQuantification
-    ExplicitNamespaces
     FlexibleContexts
     FlexibleInstances
     GADTs
@@ -103,7 +103,7 @@ flag noisy-deprecations
 common defaults
   import: GHC2024
   build-depends:
-    base ^>= {4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0},
+    base ^>= {4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0, 4.21.0},
   ghc-options:
     -Weverything
     -- This one just reports unfixable things, AFAICT.
@@ -131,7 +131,9 @@ common defaults
       -- Inference good.
       -Wno-missing-role-annotations
   default-extensions:
+    -- BlockArguments - uncomment if the oldest supported version is GHC 8.6.1+
     DefaultSignatures
+    ExplicitNamespaces
     FunctionalDependencies
     LiberalTypeSynonyms
     -- replace with `LexicalNegation` if the oldest supported version is GHC 9.0.1+
@@ -156,15 +158,15 @@ common defaults
 custom-setup
   setup-depends:
     -- TODO: Remove `Cabal` dep once haskell/cabal#3751 is fixed.
-    Cabal ^>= {3.0.0, 3.2.0, 3.4.0, 3.6.0, 3.8.0, 3.10.0, 3.12.0},
-    base ^>= {4.8.2, 4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0},
+    Cabal >= 3.0.0,
+    base ^>= {4.9.1, 4.10.1, 4.11.0, 4.12.0, 4.13.0, 4.14.0, 4.15.0, 4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0, 4.21.0},
     cabal-doctest ^>= {1.0.0},
 
 library
   import: defaults
   hs-source-dirs: src
   build-depends:
-    ghc ^>= {8.0.2, 8.2.2, 8.4.1, 8.6.1, 8.8.1, 8.10.1, 9.0.1, 9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1},
+    ghc ^>= {8.0.2, 8.2.2, 8.4.1, 8.6.1, 8.8.1, 8.10.1, 9.0.1, 9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1, 9.12.1},
   exposed-modules:
     NoRecursion
   other-modules:
