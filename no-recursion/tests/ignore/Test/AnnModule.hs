@@ -1,13 +1,14 @@
 {-# LANGUAGE Unsafe #-}
 
-module Test.Module
+module Test.AnnModule
   ( recDef,
     nonRecDef,
   )
 where
 
-import safe "base" Control.Category (Category (id))
+import safe "base" Control.Category (id)
 
+-- Removing this line should cause this module to not compile.
 {-# ANN module "Recursion" #-}
 
 recDef :: a -> b

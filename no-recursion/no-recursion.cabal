@@ -119,17 +119,14 @@ common defaults
       -Wno-safe
   if impl(ghc >= 8.10.1)
     ghc-options:
-      -- If we didn’t allow inferred-safe imports, nothing would be `Safe`.
-      -Wno-inferred-safe-imports
-      -- We support GHC versions without qualified-post.
       -Wno-prepositive-qualified-module
+  -- remove if the oldest supported version is GHC 9.2.1+
   if impl(ghc >= 9.2.1)
     ghc-options:
-      -- We support GHC versions without kind signatures.
       -Wno-missing-kind-signatures
   if impl(ghc >= 9.8.1)
     ghc-options:
-      -- We support GHC versions without kind signatures.
+      -- remove if the oldest supported version is GHC 9.2.1+
       -Wno-missing-poly-kind-signatures
       -- Inference good.
       -Wno-missing-role-annotations
@@ -170,6 +167,8 @@ library
     ghc ^>= {8.0.2, 8.2.2, 8.4.1, 8.6.1, 8.8.1, 8.10.1, 9.0.1, 9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1},
   exposed-modules:
     NoRecursion
+  other-modules:
+    PluginUtils
 
 test-suite doctests
   import: defaults
@@ -210,8 +209,24 @@ test-suite annotations
     no-recursion,
   ghc-options:
     -fplugin NoRecursion
-  hs-source-dirs: tests
+  hs-source-dirs: tests/ignore
   main-is: test.hs
   other-modules:
-    Test.Module
-    Test.Name
+    Test.AllowRecursion
+    Test.AnnModule
+    Test.AnnName
+    Test.IgnoreDefaultImpls
+    Test.UnannName
+
+test-suite no-ignore-annotations
+  import: defaults
+  type: exitcode-stdio-1.0
+  build-depends:
+    no-recursion,
+  ghc-options:
+    -fplugin NoRecursion
+    -fplugin-opt NoRecursion:ignore-method-cycles:false
+  hs-source-dirs: tests/no-ignore
+  main-is: test.hs
+  other-modules:
+    Test.IgnoreDefaultImpls

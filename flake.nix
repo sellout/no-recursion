@@ -2,6 +2,7 @@
   description = "A GHC plugin to remove support for recursion";
 
   nixConfig = {
+    allow-import-from-derivation = true;
     ## https://github.com/NixOS/rfcs/blob/master/rfcs/0045-deprecate-url-syntax.md
     extra-experimental-features = ["no-url-literals"];
     extra-substituters = ["https://cache.garnix.io"];

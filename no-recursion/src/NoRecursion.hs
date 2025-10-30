@@ -6,91 +6,155 @@
 --   default.
 module NoRecursion (plugin) where
 
-import safe "base" Control.Applicative (Applicative (pure))
-import safe "base" Control.Category (Category ((.)))
+import safe "base" Control.Applicative (liftA2, pure)
+import safe "base" Control.Category ((.))
 import safe "base" Control.Exception (ErrorCall (ErrorCall), throwIO)
 import safe "base" Control.Monad ((=<<))
-import safe "base" Data.Bool (Bool (True), not, (&&), (||))
-import safe "base" Data.Data (Data)
+import safe "base" Data.Bool (Bool (False, True), not, (&&), (||))
 import safe "base" Data.Either (Either (Left), either)
 import safe "base" Data.Foldable
-  ( Foldable (foldMap, toList),
-    all,
+  ( all,
+    any,
     elem,
+    foldMap,
+    foldr,
+    foldrM,
     notElem,
+    toList,
     traverse_,
   )
-import safe "base" Data.Function (($))
-import safe "base" Data.Functor (Functor (fmap), (<$>))
+import safe "base" Data.Function (flip, ($))
+import safe "base" Data.Functor (fmap, (<$>))
 import safe "base" Data.List (filter, intercalate, isPrefixOf, null)
 import safe "base" Data.List.NonEmpty (NonEmpty, nonEmpty)
 import safe "base" Data.Maybe (maybe)
-import safe "base" Data.Semigroup (Semigroup ((<>)))
+import safe "base" Data.Semigroup (Semigroup ((<>)), (<>))
 import safe "base" Data.String (String)
-import safe "base" Data.Tuple (fst, uncurry)
+import safe "base" Data.Tuple (curry, fst, uncurry)
+import safe "this" PluginUtils
+  ( Annotations,
+    defaultPurePlugin,
+    getAnnotations,
+    processOptions,
+  )
 #if MIN_VERSION_ghc(9, 0, 0)
-import safe "base" Data.Bifunctor (Bifunctor (first))
 import qualified "ghc" GHC.Plugins as Plugins
 #else
 import qualified "ghc" GhcPlugins as Plugins
 #endif
 
-defaultPurePlugin :: Plugins.Plugin
-#if MIN_VERSION_ghc(8, 6, 1)
-defaultPurePlugin =
-  Plugins.defaultPlugin {Plugins.pluginRecompile = Plugins.purePlugin}
-#else
-defaultPurePlugin = Plugins.defaultPlugin
-#endif
-
 -- | The entrypoint for the "NoRecursion" plugin.
 plugin :: Plugins.Plugin
-plugin = defaultPurePlugin {Plugins.installCoreToDos = \_opts -> pure . install}
+plugin =
+  defaultPurePlugin
+    { Plugins.installCoreToDos = \opts -> liftA2 install (parseOpts opts) . pure
+    }
 
-install :: [Plugins.CoreToDo] -> [Plugins.CoreToDo]
-install = (Plugins.CoreDoPluginPass "add NoRecursion rule" noRecursionPass :)
+data Opts = Opts
+  { allowRecursion :: Bool,
+    ignoreMethodCycles :: Bool,
+    ignoredDecls :: [String],
+    ignoredMethods :: [String]
+  }
 
--- | Annotations of type @a@ for a module – `fst` is the module-level
---   annotations and `Data.Tuple.snd` is a map of annotations for each name in
---   the module.
-type Annotations a = (a, Plugins.NameEnv a)
+-- | The `Opts` we have if no @-fplugin-opts=NoRecursion:@ are provided.
+--
+-- - recursion is not allowed
+-- - recursion cycles between methods is ignored (to avoid a breaking change)
+defaultOpts :: Opts
+defaultOpts =
+  Opts
+    { allowRecursion = False,
+      ignoreMethodCycles = True,
+      ignoredDecls = [],
+      ignoredMethods = []
+    }
 
-getAnnotations :: (Data a) => Plugins.ModGuts -> Plugins.CoreM (Annotations [a])
-#if MIN_VERSION_ghc(9, 0, 1)
-getAnnotations guts =
-  first
-    ( \modAnns ->
-        Plugins.lookupWithDefaultModuleEnv modAnns [] $
-          Plugins.mg_module guts
+data OptError
+  = MissingValue String
+  | UnknownOption String
+  | UnknownValue String String
+
+prettyOptError :: OptError -> Plugins.SDoc
+prettyOptError =
+  Plugins.text . \case
+    MissingValue opt ->
+      "plugin option ‘NoRecursion:" <> opt <> "’ is missing a value"
+    UnknownOption name -> "unknown plugin option ‘NoRecursion:" <> name <> "’"
+    UnknownValue typ value ->
+      "an option for the NoRecursion plugin was expecting a "
+        <> typ
+        <> " but received ‘"
+        <> value
+        <> "’"
+
+parseBoolOpt :: String -> Either OptError Bool
+parseBoolOpt = \case
+  "true" -> pure True
+  "false" -> pure False
+  value -> Left $ UnknownValue "Bool" value
+
+parseListOpt :: String -> [String]
+parseListOpt =
+  foldr
+    ( curry $ \case
+        (',', elems) -> [] : elems
+        (c, []) -> [[c]]
+        (c, curr : elems) -> (c : curr) : elems
     )
-    <$> Plugins.getAnnotations Plugins.deserializeWithData guts
-#else
-getAnnotations guts =
-  ( \anns ->
-      ( Plugins.lookupWithDefaultUFM
-          anns
-          []
-          ( Plugins.ModuleTarget $ Plugins.mg_module guts ::
-              Plugins.CoreAnnTarget
-          ),
-        anns
-      )
-  )
-    <$> Plugins.getAnnotations Plugins.deserializeWithData guts
-#endif
+    []
 
-noRecursionPass :: Plugins.ModGuts -> Plugins.CoreM Plugins.ModGuts
-noRecursionPass guts = do
+parseOpts :: [Plugins.CommandLineOption] -> Plugins.CoreM Opts
+parseOpts =
+  foldrM
+    ( \(name, mvalue) opts ->
+        case name of
+          "allow-recursion" ->
+            either (err opts) (\v -> pure opts {allowRecursion = v}) $
+              maybe (pure True) parseBoolOpt mvalue
+          "ignore-method-cycles" ->
+            either (err opts) (\v -> pure opts {ignoreMethodCycles = v}) $
+              maybe (pure True) parseBoolOpt mvalue
+          "ignore-decls" ->
+            maybe
+              (err opts $ MissingValue name)
+              ( \v ->
+                  pure opts {ignoredDecls = parseListOpt v <> ignoredDecls opts}
+              )
+              mvalue
+          "ignore-methods" ->
+            maybe
+              (err opts $ MissingValue name)
+              ( \v ->
+                  pure
+                    opts
+                      { ignoredMethods = parseListOpt v <> ignoredMethods opts
+                      }
+              )
+              mvalue
+          _ -> err opts $ UnknownOption name
+    )
+    defaultOpts
+    . processOptions
+  where
+    err opts = fmap (\() -> opts) . Plugins.errorMsg . prettyOptError
+
+install :: Opts -> [Plugins.CoreToDo] -> [Plugins.CoreToDo]
+install opts =
+  (Plugins.CoreDoPluginPass "add NoRecursion rule" (noRecursionPass opts) :)
+
+noRecursionPass :: Opts -> Plugins.ModGuts -> Plugins.CoreM Plugins.ModGuts
+noRecursionPass opts guts = do
   dflags <- Plugins.getDynFlags
   anns <- getAnnotations guts
   either
     ( \recs ->
         Plugins.liftIO . throwIO . ErrorCall $
-          "something recursive:\n"
+          "encountered recursion, which has been disabled:\n"
             <> intercalate "\n" (toList $ formatRecursionRecord dflags <$> recs)
     )
     (\() -> pure guts)
-    . failOnRecursion dflags anns
+    . failOnRecursion dflags opts anns
     $ Plugins.mg_binds guts
 
 data RecursionRecord b = RecursionRecord [b] (NonEmpty b)
@@ -116,49 +180,66 @@ recursionAnnotation = "Recursion"
 noRecursionAnnotation :: String
 noRecursionAnnotation = "NoRecursion"
 
+moduleAllowsRecursion :: Bool -> [String] -> Bool
+moduleAllowsRecursion allowRecursion modAnns =
+  (allowRecursion || elem recursionAnnotation modAnns)
+    && notElem noRecursionAnnotation modAnns
+
+getName :: Plugins.DynFlags -> Plugins.CoreBndr -> String
+getName dflags = Plugins.showSDoc dflags . Plugins.ppr
+
+isInternalName :: Plugins.DynFlags -> Plugins.CoreBndr -> Bool
+isInternalName dflags var =
+  let v = getName dflags var
+   in "$c" `isPrefixOf` v || "$f" `isPrefixOf` v
+
 failOnRecursion ::
   Plugins.DynFlags ->
+  Opts ->
   Annotations [String] ->
   [Plugins.CoreBind] ->
   Either (NonEmpty (RecursionRecord Plugins.CoreBndr)) ()
-failOnRecursion dflags (modAnns, nameAnns) original =
-  let moduleAllowsRecursion =
-        elem recursionAnnotation modAnns
-          && notElem noRecursionAnnotation modAnns
-   in traverse_ Left
-        . nonEmpty
-        -- __TODO__: Default method implementations seem to cause mutual
-        --           recursion with the instance, so here we filter them out,
-        --           but this probably lets some real mutual recursion slip
-        --           through.
-        . filter
-          ( \(RecursionRecord context recs) ->
-              not $
-                null context
-                  && all
-                    ( \var ->
-                        let v = Plugins.showSDoc dflags $ Plugins.ppr var
-                         in "$c" `isPrefixOf` v || "$f" `isPrefixOf` v
-                    )
-                    recs
+failOnRecursion
+  dflags
+  opts
+  (modAnns, nameAnns)
+  original =
+    traverse_ Left
+      . nonEmpty
+      -- __TODO__: Default method implementations seem to cause mutual
+      --           recursion with the instance, so here we filter them out,
+      --           but this probably lets some real mutual recursion slip
+      --           through.
+      . filter
+        ( not
+            . \(RecursionRecord context recs) ->
+              ignoreMethodCycles opts && null context && all (isInternalName dflags) recs
+                || any (flip elem (ignoredDecls opts) . getName dflags) recs
+                || any (flip elem (("$c" <>) <$> ignoredMethods opts) . getName dflags) context
+        )
+      $ recursiveCallsForBind
+        =<< filter
+          ( not
+              . allowBind
+                (moduleAllowsRecursion (allowRecursion opts) modAnns)
+                nameAnns
           )
-        $ recursiveCallsForBind
-          =<< filter (not . allowBind moduleAllowsRecursion nameAnns) original
+          original
 
 addBindingReference :: b -> [RecursionRecord b] -> [RecursionRecord b]
 addBindingReference var =
   fmap (\(RecursionRecord context recs) -> RecursionRecord (var : context) recs)
 
 allowBind :: Bool -> Plugins.NameEnv [String] -> Plugins.CoreBind -> Bool
-allowBind moduleAllowsRecursion anns = \case
+allowBind modAllowsRecursion anns = \case
   Plugins.NonRec {} -> True
-  Plugins.Rec bs -> all (recursionAllowed moduleAllowsRecursion anns . fst) bs
+  Plugins.Rec bs -> all (recursionAllowed modAllowsRecursion anns . fst) bs
 
 recursionAllowed :: Bool -> Plugins.NameEnv [String] -> Plugins.Var -> Bool
-recursionAllowed moduleAllowsRecursion anns var =
+recursionAllowed modAllowsRecursion anns var =
   let strAnns =
         Plugins.lookupWithDefaultUFM_Directly anns [] $ Plugins.getUnique var
-   in (moduleAllowsRecursion || elem recursionAnnotation strAnns)
+   in (modAllowsRecursion || elem recursionAnnotation strAnns)
         && notElem noRecursionAnnotation strAnns
 
 recursiveCallsForBind :: Plugins.Bind b -> [RecursionRecord b]

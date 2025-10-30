@@ -14,7 +14,7 @@ Add `no-recursion` to your build dependencies.
 Add `-fplugin NoRecursion` to your GHC options. This can be done per-module with
 
 ```haskell
-{-# OPTIONS_GHC -fplugin NoRecursion #-}
+{-# options_ghc -fplugin NoRecursion #-}
 ```
 
 Now, any recursion in that module will result in a compilation failure.
@@ -23,20 +23,39 @@ Now, any recursion in that module will result in a compilation failure.
 
 ### allowing some recursion
 
-NoRecursion supports two source annotations: `"Recursion"` and `"NoRecursion"`.
+The recommended way to re-enable recursion at the module level is to add
 
-You can re-enable recursion for individual top-level names like
+```haskell
+{-# options_ghc -fplugin-opt=NoRecursion:allow-recursion:true #-}
+```
+
+at the beginning of the file.
+
+If you want to re-enable it for specific definitions, the best way is to use
+
+```haskell
+{-# options_ghc -fplugin-opt=NoRecursion:ignore-decls:recDef #-}
+
+recDef :: a -> b
+recDef = recDef
+```
+
+You can also do it with a source annotation
 
 ```haskell
 recDef :: a -> b
-recDef = myRecDef
-{-# ANN recDef "Recursion" #-}
+recDef = recDef
+{-# ann recDef "Recursion" #-}
 ```
 
-Or you can re-enable recursion for an entire module with
+Unfortunately, the `ann` pragma isn’t allowed by [Safe Haskell](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/safe_haskell.html), so any module that uses it will be inferred as `Unsafe`. So you have to decide between an `Unsafe` (or `Trustworthy`) module and not enabling recursion for the entire module. This can be mitigated by putting recursive definitions in a module by themselves.
+
+NoRecursion supports two [source annotations](https://downloads.haskell.org/ghc/latest/docs/users_guide/extending_ghc.html#source-annotations): `"Recursion"` and `"NoRecursion"`.
+
+You can re-enable recursion for an entire module with
 
 ```haskell
-{-# ANN module "Recursion" #-}
+{-# ann module "Recursion" #-}
 ```
 
 And then you can re-disable recursion for individual names with
@@ -44,7 +63,7 @@ And then you can re-disable recursion for individual names with
 ```haskell
 nonRecDef :: a -> a
 nonRecDef = id
-{-# ANN nonRecDef "NoRecursion" #-}
+{-# ann nonRecDef "NoRecursion" #-}
 ```
 
 If both '"Recursion"' and `"NoRecursion"` annotations exist on the same name (or module), it’s treated as `NoRecursion`.
@@ -53,14 +72,36 @@ If both '"Recursion"' and `"NoRecursion"` annotations exist on the same name (or
 
 `ANN` has some caveats:
 
-- `ANN` isn’t allowed by [Safe Haskell](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/safe_haskell.html), so any module that uses it will be inferred as `Unsafe`.
 - If you enable [the `OverloadedStrings` language extension](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/overloaded_strings.html), you will have to specify the type in the annotation, like
 
   ```haskell
-  {-# ANN module "Recursion" :: String #-}
+  {-# ann module "Recursion" :: String #-}
   ```
 
-For more about how to use annotations, see [the GHC User’s Guide](https://downloads.haskell.org/ghc/latest/docs/users_guide/extending_ghc.html#source-annotations).
+### plugin options
+
+The plugin currently supports four options
+
+- `allow-recursion`: (`true`|`false`) whether to allow recursion by default. As mentioned above, this is the best way to re-enable recursion for a single module, but you can do the reverse and specify `allow-recursion:true` globally, then use `allow-recursion:false` per-module.
+
+- `ignore-method-cycles`: (`true`|`false`) whether to ignore cycles between method definitions.the method level. This crops up a lot with errors about things like `$csconcat`.
+
+- `ignore-methods`: (list of method names) ignores the named methods. Very useful for silencing errors about default method definitions.
+
+- `ignore-decls`: (list of decl names) ignores the named decls. This is good to put at the top of a module where you have intentionally written a recursive definition.
+
+### suggestions
+
+#### `in $csconcat, the following bindings were recursive: go1`
+
+This particular message occurs when you define a `Semigroup` instance that didn’t have an explicit `sconcat` implementation. The default definition is recursive, and `NoRecursion` catches that. Similar messages occur with default definitions for other classes as well.
+
+You can’t apply `ann` to methods, so here are some ways to get around this issue:
+
+1. write an explicit non-recursive definition, or
+2. add `{-# options_ghc -fplugin-opt=NoRecursion:ignore-methods:sconcat #-}` to the top of the module, which will ignore this method module-wide.
+
+Unfortunately, because `sconcat` (and `mconcat`) require lazy lists (`[]`), it’s not possible to write a total definition for these.
 
 ## versioning
 
