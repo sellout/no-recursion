@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE Unsafe #-}
 
 -- | A plugin that identifies and reports on uses of recursion. The name evokes
@@ -25,23 +24,20 @@ import safe "base" Data.Foldable
   )
 import safe "base" Data.Function (flip, ($))
 import safe "base" Data.Functor (fmap, (<$>))
+import safe "base" Data.Kind (Type)
 import safe "base" Data.List (filter, intercalate, isPrefixOf, null)
 import safe "base" Data.List.NonEmpty (NonEmpty, nonEmpty)
 import safe "base" Data.Maybe (maybe)
 import safe "base" Data.Semigroup (Semigroup ((<>)), (<>))
 import safe "base" Data.String (String)
 import safe "base" Data.Tuple (curry, fst, uncurry)
+import "ghc" GHC.Plugins qualified as Plugins
 import safe "this" PluginUtils
   ( Annotations,
     defaultPurePlugin,
     getAnnotations,
     processOptions,
   )
-#if MIN_VERSION_ghc(9, 0, 0)
-import qualified "ghc" GHC.Plugins as Plugins
-#else
-import qualified "ghc" GhcPlugins as Plugins
-#endif
 
 -- | The entrypoint for the "NoRecursion" plugin.
 plugin :: Plugins.Plugin
@@ -50,6 +46,7 @@ plugin =
     { Plugins.installCoreToDos = \opts -> liftA2 install (parseOpts opts) . pure
     }
 
+type Opts :: Type
 data Opts = Opts
   { allowRecursion :: Bool,
     ignoreMethodCycles :: Bool,
@@ -70,6 +67,7 @@ defaultOpts =
       ignoredMethods = []
     }
 
+type OptError :: Type
 data OptError
   = MissingValue String
   | UnknownOption String
@@ -157,6 +155,7 @@ noRecursionPass opts guts = do
     . failOnRecursion dflags opts anns
     $ Plugins.mg_binds guts
 
+type RecursionRecord :: Type -> Type
 data RecursionRecord b = RecursionRecord [b] (NonEmpty b)
 
 formatRecursionRecord ::
@@ -270,8 +269,4 @@ collectRecursiveCalls = \case
   Plugins.Var _ -> []
 
 recursiveCallsForAlt :: Plugins.Alt b -> [RecursionRecord b]
-#if MIN_VERSION_ghc(9, 2, 0)
 recursiveCallsForAlt (Plugins.Alt _ _ rhs) = collectRecursiveCalls rhs
-#else
-recursiveCallsForAlt (_, _, rhs) = collectRecursiveCalls rhs
-#endif

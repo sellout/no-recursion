@@ -9,10 +9,12 @@ module Test.IgnoreDefaultImpls
 where
 
 import "base" Data.Function (($))
+import "base" Data.Kind (Type)
 import "base" Data.Monoid (Monoid, mappend, mempty)
 import "base" Data.Semigroup (Semigroup, (<>))
 import "base" Data.Tuple (curry)
 
+type Example :: Type
 data Example
   = Empty
   | NotEmpty
