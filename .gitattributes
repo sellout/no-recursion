@@ -14,5 +14,9 @@
 /.gitignore linguist-generated
 /.hlint.yaml linguist-generated
 /.vale.ini linguist-generated
+/core/LICENSE linguist-generated
+/core/LICENSE.AGPL-3.0-only linguist-generated
+/core/LICENSE.Universal-FOSS-exception-1.0 linguist-generated
+/core/LICENSE.commercial linguist-generated
 /garnix.yaml linguist-generated
 /nix-ci.nix linguist-generated

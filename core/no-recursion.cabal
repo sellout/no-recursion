@@ -13,9 +13,12 @@ homepage: https://github.com/sellout/no-recursion#readme
 bug-reports: https://github.com/sellout/no-recursion/issues
 category: Recursion
 build-type: Custom
-license: AGPL-3.0-or-later
+license: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR LicenseRef-commercial
 license-files:
   LICENSE
+  LICENSE.AGPL-3.0-only
+  LICENSE.Universal-FOSS-exception-1.0
+  LICENSE.commercial
 extra-doc-files:
   CHANGELOG.md
   README.md

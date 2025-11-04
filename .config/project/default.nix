@@ -10,6 +10,13 @@
   project = {
     name = "no-recursion";
     summary = "A GHC plugin to remove support for recursion";
+    file = {
+      "core/LICENSE".source = ../../LICENSE;
+      "core/LICENSE.AGPL-3.0-only".source = ../../LICENSE.AGPL-3.0-only;
+      "core/LICENSE.Universal-FOSS-exception-1.0".source =
+        ../../LICENSE.Universal-FOSS-exception-1.0;
+      "core/LICENSE.commercial".source = ../../LICENSE.commercial;
+    };
   };
 
   imports = [./hlint.nix];
@@ -26,13 +33,13 @@
     git.enable = true;
   };
 
-  ## formatting
-  editorconfig.enable = true;
-
   programs = {
     treefmt.enable = true;
     vale.enable = true;
   };
+
+  ## formatting
+  editorconfig.enable = true;
 
   ## CI
   services.garnix.enable = true;
