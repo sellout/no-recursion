@@ -36,6 +36,22 @@ source-repository head
   location: https://github.com/sellout/no-recursion.git
   subdir: core
 
+flag noisy-deprecations
+  description:
+    Prior to GHC 9.10, the `DEPRECATED` pragma can’t distinguish between terms
+    and types. Consenquently, you can get spurious warnings when there’s a name
+    collision and the name in the other namespace is deprecated. Or you can
+    choose to not get those warnings, at the risk of not being warned when
+    there’s a name collision and the namespace you’re referencing is the one
+    that’s deprecated.
+
+custom-setup
+  setup-depends:
+    -- TODO: Remove `Cabal` dep once haskell/cabal#3751 is fixed.
+    Cabal >= 3.0.0,
+    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0},
+    cabal-doctest ^>= {1.0.0},
+
 -- This mimics the GHC2024 extension
 -- (https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/control.html?highlight=doandifthenelse#extension-GHC2024),
 -- but supporting compilers back to GHC 8.0. If the oldest supported compiler
@@ -54,15 +70,6 @@ common GHC2024
     MagicHash
     MonadComprehensions
     RoleAnnotations
-
-flag noisy-deprecations
-  description:
-    Prior to GHC 9.10, the `DEPRECATED` pragma can’t distinguish between terms
-    and types. Consenquently, you can get spurious warnings when there’s a name
-    collision and the name in the other namespace is deprecated. Or you can
-    choose to not get those warnings, at the risk of not being warned when
-    there’s a name collision and the namespace you’re referencing is the one
-    that’s deprecated.
 
 common defaults
   import: GHC2024
@@ -105,13 +112,6 @@ common defaults
     NoTypeApplications
   if flag(noisy-deprecations)
     cpp-options: -DSELLOUT_NOISY_DEPRECATIONS
-
-custom-setup
-  setup-depends:
-    -- TODO: Remove `Cabal` dep once haskell/cabal#3751 is fixed.
-    Cabal >= 3.0.0,
-    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0},
-    cabal-doctest ^>= {1.0.0},
 
 library
   import: defaults
