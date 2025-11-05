@@ -10,6 +10,13 @@
   project = {
     name = "no-recursion";
     summary = "A GHC plugin to remove support for recursion";
+    file = {
+      "core/LICENSE".source = ../../LICENSE;
+      "core/LICENSE.AGPL-3.0-only".source = ../../LICENSE.AGPL-3.0-only;
+      "core/LICENSE.Universal-FOSS-exception-1.0".source =
+        ../../LICENSE.Universal-FOSS-exception-1.0;
+      "core/LICENSE.commercial".source = ../../LICENSE.commercial;
+    };
   };
 
   imports = [./hlint.nix];
@@ -26,13 +33,13 @@
     git.enable = true;
   };
 
-  ## formatting
-  editorconfig.enable = true;
-
   programs = {
     treefmt.enable = true;
     vale.enable = true;
   };
+
+  ## formatting
+  editorconfig.enable = true;
 
   ## CI
   services.garnix.enable = true;
@@ -51,89 +58,12 @@
           "build (--prefer-oldest, ${ghc}, ${sys})"
         ])
         self.lib.nonNixTestedGhcVersions)
-      self.lib.githubSystems);
+      config.services.haskell-ci.systems);
   services.haskell-ci = {
     inherit (self.lib) defaultGhcVersion;
-    systems = self.lib.githubSystems;
     ghcVersions = self.lib.nonNixTestedGhcVersions;
-    exclude =
-      [
-        ## These fail to build Cabal-syntax – since it works on most
-        ## OSes with `--prefer-oldest`, it may be a dependency version
-        ## issue.
-        {
-          bounds = "--prefer-oldest";
-          ghc = "8.4.1";
-          os = "windows-2022";
-        }
-        {
-          bounds = "";
-          ghc = "8.4.1";
-        }
-        ## Plugins are broken on Windows from GHC 8.6.1 to 8.6.4.
-        ## (See https://gitlab.haskell.org/ghc/ghc/-/issues/15700)
-        {
-          ghc = "8.6.1";
-          os = "windows-2022";
-        }
-      ]
-      ## These fail to build hsc2hs, perhaps related to
-      ## https://stackoverflow.com/questions/32740172/unresolved-stdio-common-vsprintf-s-what-library-has-this.
-      ++ map (ghc: {
-        inherit ghc;
-        os = "windows-2022";
-      }) ["8.0.2" "8.2.2"]
-      ## TODO: Broken or flaky builds that need to be analyzed
-      ++ map (ghc: {
-        inherit ghc;
-        os = "windows-2022";
-      }) ["8.8.1" "8.10.1"]
-      ## TODO: These fail when running doctests.
-      ##     > <command line>: can't load framework: Security (not found)
-      ##     > doctests: fd:5: hGetLine: end of file
-      ++ map (ghc: {
-        inherit ghc;
-        bounds = "";
-        os = "macos-13";
-      }) ["8.6.1" "8.8.1" "8.10.1"]
-      ++ [
-        {
-          ghc = "9.4.1";
-          os = "macos-14";
-        }
-      ];
-    ## These replace the some of the builds excluded above..
-    include = let
-      bounds = ["--prefer-oldest" ""];
-    in
-      [
-        {
-          bounds = "--prefer-oldest";
-          ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
-          os = "windows-2022";
-        }
-      ]
-      ++ map (os: {
-        inherit os;
-        bounds = "";
-        ghc = "8.4.4"; # TODO: Might work on 8.4.2–8.4.3
-      })
-      ## No aarch64-darwin support in GHC 8.4
-      (lib.remove "macos-14" self.lib.githubSystems)
-      ++ map (bounds: {
-        inherit bounds;
-        ghc = "8.6.5";
-        os = "windows-2022";
-      })
-      bounds
-      ++ lib.concatMap (bounds:
-        map (ghc: {
-          inherit bounds ghc;
-          os = "windows-2022";
-        }) ["8.10.7"]) # TODO: Might work on .2–.6
-      
-      bounds;
-    cabalPackages = {"${config.project.name}" = config.project.name;};
+    cabalPackages = {"${config.project.name}" = "core";};
+    extraDependencyVersions = ["doctest-0.24.0"];
     latestGhcVersion = "9.10.1";
   };
 

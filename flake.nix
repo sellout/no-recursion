@@ -2,12 +2,21 @@
   description = "A GHC plugin to remove support for recursion";
 
   nixConfig = {
+    ## NB: This is a consequence both of the prevailing Haskell infrastructure
+    ##     and of using `self.pkgsLib.runEmptyCommand`, which allows us to
+    ##     sandbox derivations that otherwise can’t be. Even once we migrate to
+    ##     non-IFD Haskell infra, this will probably still need to be enabled
+    ##     for the other reason.
     allow-import-from-derivation = true;
     ## https://github.com/NixOS/rfcs/blob/master/rfcs/0045-deprecate-url-syntax.md
     extra-experimental-features = ["no-url-literals"];
-    extra-substituters = ["https://cache.garnix.io"];
+    extra-substituters = [
+      "https://cache.garnix.io"
+      "https://sellout.cachix.org"
+    ];
     extra-trusted-public-keys = [
       "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+      "sellout.cachix.org-1:v37cTpWBEycnYxSPAgSQ57Wiqd3wjljni2aC0Xry1DE="
     ];
     ## Isolate the build.
     sandbox = "relaxed";
@@ -94,7 +103,10 @@
         ## NB: Dependencies that are overridden because they are broken in
         ##     Nixpkgs should be pushed upstream to Flaky. This is for
         ##     dependencies that we override for reasons local to the project.
-        haskellDependencies = final: prev: hfinal: hprev: {};
+        haskellDependencies = final: prev: hfinal: hprev: {
+          network = final.haskell.lib.dontCheck hprev.network;
+          warp = final.haskell.lib.dontCheck hprev.warp;
+        };
       };
 
       homeConfigurations =
@@ -114,7 +126,7 @@
           "ghc" + nixpkgs.lib.replaceStrings ["."] [""] version;
 
         ## TODO: Extract this automatically from `pkgs.haskellPackages`.
-        defaultGhcVersion = "9.6.6";
+        defaultGhcVersion = "9.8.4";
 
         ## Test the oldest revision possible for each minor release. If it’s not
         ## available in nixpkgs, test the oldest available, then try an older
@@ -123,32 +135,21 @@
         ## maps to in the nixpkgs we depend on.
         testedGhcVersions = system: [
           self.lib.defaultGhcVersion
-          "8.10.7"
-          "9.0.2"
-          "9.2.5"
-          "9.4.5"
           "9.6.3"
           "9.8.1"
           "9.10.1"
+          "9.12.1"
           # "ghcHEAD" # doctest doesn’t work on current HEAD
         ];
 
         ## The versions that are older than those supported by Nix that we
         ## prefer to test against.
         nonNixTestedGhcVersions = [
-          "8.0.2"
-          "8.2.2"
-          "8.4.1"
-          "8.6.1"
-          "8.8.1"
-          "8.10.1"
-          "9.0.1"
-          "9.2.1"
-          "9.4.1"
           "9.6.1"
           ## since `cabal-plan-bounds` doesn’t work under Nix
           "9.8.1"
           "9.10.1"
+          "9.12.1"
         ];
 
         ## However, provide packages in the default overlay for _every_
@@ -156,29 +157,17 @@
         supportedGhcVersions = system:
           self.lib.testedGhcVersions system
           ++ [
-            "9.2.6"
-            "9.2.7"
-            "9.2.8"
-            "9.4.6"
-            "9.4.7"
-            "9.4.8"
             "9.6.4"
             "9.6.5"
             "9.8.2"
+            "9.10.2"
+            "9.12.2"
           ];
-
-        githubSystems = [
-          "macos-13" # x86_64-darwin
-          "macos-14" # aarch64-darwin
-          "ubuntu-24.04" # x86_64-linux
-          "windows-2022"
-        ];
       };
     }
     // flake-utils.lib.eachSystem supportedSystems
     (system: let
       pkgs = nixpkgs.legacyPackages.${system}.appendOverlays [
-        flaky.overlays.default
         ## NB: This uses `self.overlays.default` because packages need to be
         ##     able to find other packages in this flake as dependencies.
         self.overlays.default
@@ -206,20 +195,9 @@
         cabalPackages
         (hpkgs:
           [self.projectConfigurations.${system}.packages.path]
-          ## NB: Haskell Language Server no longer supports GHC <9.2, and 9.4
-          ##     has an issue with it on i686-linux.
-          ## TODO: Remove the restriction on GHC 9.10 once
-          ##       https://github.com/NixOS/nixpkgs/commit/e87381d634cb1ddd2bd7e121c44fbc926a8c026a
-          ##       finds its way into 24.05.
+          ## NB: Haskell Language Server no longer supports GHC <9.4.
           ++ nixpkgs.lib.optional
-          (
-            (
-              if system == "i686-linux"
-              then nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.4"
-              else nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.2"
-            )
-            && nixpkgs.lib.versionOlder hpkgs.ghc.version "9.10"
-          )
+          (nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.4")
           hpkgs.haskell-language-server);
 
       projectConfigurations =
@@ -231,15 +209,20 @@
 
   inputs = {
     ## Flaky should generally be the source of truth for its inputs.
-    flaky.url = "github:sellout/flaky";
+    flaky = {
+      inputs.systems.follows = "systems";
+      url = "github:sellout/flaky";
+    };
 
     flake-utils.follows = "flaky/flake-utils";
     nixpkgs.follows = "flaky/nixpkgs";
-    systems.follows = "flaky/systems";
 
     flaky-haskell = {
       inputs.flaky.follows = "flaky";
       url = "github:sellout/flaky-haskell";
     };
+
+    ## Don’t inherit from Flaky, because we don’t support i686-linux.
+    systems.url = "github:nix-systems/default";
   };
 }
