@@ -47,8 +47,12 @@ flag noisy-deprecations
 
 custom-setup
   setup-depends:
-    -- TODO: Remove `Cabal` dep once haskell/cabal#3751 is fixed.
-    Cabal >= 3.0.0,
+    -- TODO: Due to haskell/cabal#3751, `Cabal` has to be specified even though
+    --       there’s no direct dependency. Its lower bound needs to match
+    --      `cabal-version` at the top of this file, and Hackage requires it to
+    --       have _some_ upper bound. (Since there’s no direct dependency, it
+    --       doesn’t use PVP bounds.)
+    Cabal >= 3.0 && < 99,
     base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0},
     cabal-doctest ^>= {1.0.0},
 
