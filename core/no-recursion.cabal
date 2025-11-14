@@ -13,7 +13,9 @@ homepage: https://github.com/sellout/no-recursion#readme
 bug-reports: https://github.com/sellout/no-recursion/issues
 category: Recursion
 build-type: Custom
-license: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR LicenseRef-commercial
+-- TODO: Remove the redundant `OR AGPL-3.0-only` once
+--       haskell/hackage-server#1440 is fixed.
+license: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR AGPL-3.0-only OR LicenseRef-commercial
 license-files:
   LICENSE
   LICENSE.AGPL-3.0-only
