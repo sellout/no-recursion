@@ -6,13 +6,9 @@ synopsis: A GHC plugin to remove support for recursion
 description: General recursion can be the cause of a lot of problems. This
              removes recursion from GHC, allowing you to guarantee you’re using
              other mechanisms, like recursion schemes.
-author: Greg Pfeil <greg@technomadic.org>
 maintainer: Greg Pfeil <greg@technomadic.org>
+author: Greg Pfeil <greg@technomadic.org>
 copyright: 2024 Greg Pfeil
-homepage: https://github.com/sellout/no-recursion#readme
-bug-reports: https://github.com/sellout/no-recursion/issues
-category: Recursion
-build-type: Custom
 -- TODO: Remove the redundant `OR AGPL-3.0-only` once
 --       haskell/hackage-server#1440 is fixed.
 license: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR AGPL-3.0-only OR LicenseRef-commercial
@@ -21,6 +17,8 @@ license-files:
   LICENSE.AGPL-3.0-only
   LICENSE.Universal-FOSS-exception-1.0
   LICENSE.commercial
+category: Recursion
+build-type: Custom
 extra-doc-files:
   CHANGELOG.md
   README.md
@@ -33,6 +31,8 @@ tested-with:
     9.12.1
   }
 
+homepage: https://github.com/sellout/no-recursion#readme
+bug-reports: https://github.com/sellout/no-recursion/issues
 source-repository head
   type: git
   location: https://github.com/sellout/no-recursion.git
@@ -40,12 +40,14 @@ source-repository head
 
 flag noisy-deprecations
   description:
-    Prior to GHC 9.10, the `DEPRECATED` pragma can’t distinguish between terms
+    Prior to GHC 9.10, the @DEPRECATED@ pragma can’t distinguish between terms
     and types. Consenquently, you can get spurious warnings when there’s a name
     collision and the name in the other namespace is deprecated. Or you can
     choose to not get those warnings, at the risk of not being warned when
     there’s a name collision and the namespace you’re referencing is the one
     that’s deprecated.
+  default: True
+  manual: False
 
 custom-setup
   setup-depends:
@@ -60,7 +62,7 @@ custom-setup
 
 -- This mimics the GHC2024 extension
 -- (https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/control.html?highlight=doandifthenelse#extension-GHC2024),
--- but supporting compilers back to GHC 8.0. If the oldest supported compiler
+-- but supporting compilers back to GHC 7.10. If the oldest supported compiler
 -- is GHC 9.10, then this stanza can be removed and `import: GHC2024` can be
 -- replaced by `default-language: GHC2024`. If the oldest supported compiler is
 -- GHC 9.2, then this can be simplified by setting `default-language: GHC2021`
