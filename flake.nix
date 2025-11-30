@@ -103,10 +103,20 @@
         ## NB: Dependencies that are overridden because they are broken in
         ##     Nixpkgs should be pushed upstream to Flaky. This is for
         ##     dependencies that we override for reasons local to the project.
-        haskellDependencies = final: prev: hfinal: hprev: {
-          network = final.haskell.lib.dontCheck hprev.network;
-          warp = final.haskell.lib.dontCheck hprev.warp;
-        };
+        haskellDependencies = final: prev: hfinal: hprev:
+          {
+            network = final.haskell.lib.dontCheck hprev.network;
+            warp = final.haskell.lib.dontCheck hprev.warp;
+          }
+          ## binary-instances test currently failing on GHC 9.12.1.
+          // (
+            if final.lib.versionOlder "9.12.0" hprev.ghc.version
+            then {
+              binary-instances =
+                final.haskell.lib.dontCheck hprev.binary-instances;
+            }
+            else {}
+          );
       };
 
       homeConfigurations =
