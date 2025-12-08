@@ -103,6 +103,78 @@ You can’t apply `ann` to methods, so here are some ways to get around this iss
 
 Unfortunately, because `sconcat` (and `mconcat`) require lazy lists (`[]`), it’s not possible to write a total definition for these.
 
+### mitigating [dependency hell](https://en.wikipedia.org/wiki/Dependency_hell)
+
+As NoRecursion is effectively a linter, you don’t have to depend on it in every case (although, be careful, because different GHC versions may catch (or induce) different occurrences of recursion).
+
+It’s easy to conditionalize the use of NoRecursion by adding the following (with a suitable replacement for `_`) to the stanzas in your Cabal file:
+
+```cabal
+  if _
+    build-depends:
+      no-recursion ^>= {x.y.z},
+    ghc-options:
+      -fplugin=NoRecursion
+```
+
+If the plugin isn’t enabled, any `-fplugin-opt=NoRecursion:…` elsewhere will simply be ignored.
+
+Here are a couple concrete situations where this is useful.
+
+#### you support a some environment that NoRecursion doesn’t
+
+```cabal
+  if impl(ghc >= 9.6.1) && impl(ghc < 9.14.1) && !arch(i386)
+```
+
+With the above condition, NoRecursion will only be used with GHC 9.6.1–9.12 and on architectures that aren’t i386 (32-bit).
+
+Of course, we would love to have NoRecursion work in all your environments, so please [open an issue](https://github.com/sellout/no-recursion/issues/new?title=Add+support+for+&labels=dependencies,enhancement) if you find yourself using this approach. Since it’s a compiler plugin, it’s more sensitive to GHC changes than most code, so just ignoring dependency bounds is less likely to work.
+
+#### you want to get out of consumers’ way
+
+A common situation is depending on a version that isn’t widely available (this can happen with Stackage or maybe it’s an unpublished revision that you’ve added as a `source-repository-package`).
+
+In this case, you can define a flag in your Cabal file
+
+```cabal
+flag verify-no-recursion
+  description:
+    Compile with "NoRecursion" enabled. This is intended for developers of this
+    package.
+  default: False
+  manual: True
+```
+
+And then conditionalize on that
+
+```cabal
+  if flag(verify-no-recursion)
+```
+
+In cabal.project, you should also add
+
+```cabal
+flags:
+  +verify-no-recursion
+```
+
+which will ensure that the flag doesn’t get automatically disabled when doing local development. You don’t want to discover that you had the `no-recursion` bounds set incorrectly only after a user complains that they can’t compile your library because of recursion errors.
+
+If you’re using Stack, you can achieve the same thing with
+
+```yaml
+flags:
+  local-package:
+    verify-no-recursion: true
+  another-local-package:
+    verify-no-recursion: true
+```
+
+Note that with Stack you need to set the flag separately for each package in your project.
+
+You can see an example of this (with Cabal) in the [duoids](https://github.com/sellout/duoids/blob/6de6468d173fdb8b95db3789d65984289b7b42d5/core/duoids.cabal#L64-L70) project.
+
 ## versioning
 
 This project largely follows the [Haskell Package Versioning Policy](https://pvp.haskell.org/) (PVP), but is more strict in some ways.
