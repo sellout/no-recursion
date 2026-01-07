@@ -1,7 +1,7 @@
 cabal-version: 3.0
 
 name: no-recursion
-version: 0.3.0.0
+version: 0.3.0.1
 synopsis: A GHC plugin to remove support for recursion
 description: General recursion can be the cause of a lot of problems. This
              removes recursion from GHC, allowing you to guarantee you’re using
@@ -27,10 +27,11 @@ extra-doc-files:
   docs/*.md
 tested-with:
   GHC == {
-    9.6.1, 9.6.3,
+    9.6.1, 9.6.7,
     9.8.1, 9.8.4,
-    9.10.1,
-    9.12.1
+    9.10.1, 9.10.2, 9.10.3,
+    9.12.1, 9.12.2,
+    9.14.1
   }
 
 source-repository head
@@ -55,7 +56,7 @@ custom-setup
     --       have _some_ upper bound. (Since there’s no direct dependency, it
     --       doesn’t use PVP bounds.)
     Cabal >= 3.0 && < 99,
-    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0},
+    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
     cabal-doctest ^>= {1.0.0},
 
 -- This mimics the GHC2024 extension
@@ -80,7 +81,7 @@ common GHC2024
 common defaults
   import: GHC2024
   build-depends:
-    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0},
+    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
   ghc-options:
     -Weverything
     -- This one just reports unfixable things, AFAICT.
@@ -123,7 +124,7 @@ library
   import: defaults
   hs-source-dirs: src
   build-depends:
-    ghc ^>= {9.6.1, 9.8.1, 9.10.1, 9.12.1},
+    ghc ^>= {9.6.1, 9.8.1, 9.10.1, 9.12.1, 9.14.1},
   exposed-modules:
     NoRecursion
   other-modules:
