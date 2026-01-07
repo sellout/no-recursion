@@ -116,6 +116,18 @@
                 final.haskell.lib.dontCheck hprev.binary-instances;
             }
             else {}
+          )
+          ## inconsistent regex-tdfa hashes on aarch64-linux
+          // (
+            if
+              final.stdenv.hostPlatform.system
+              == "aarch64-linux"
+              && final.lib.versionOlder "9.8.0" hprev.ghc.version
+              && final.lib.versionOlder "9.10.0" hprev.ghc.version
+            then {
+              regex-tdfa = final.haskell.lib.dontCheck hprev.regex-tdfa;
+            }
+            else {}
           );
       };
 
