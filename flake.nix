@@ -116,6 +116,21 @@
                 final.haskell.lib.dontCheck hprev.binary-instances;
             }
             else {}
+          )
+          ## stylish-haskell has a different dependency hash for regex-tdfa on
+          ## Linux under GHC 9.8 than any other package, so we just remove our
+          ## need for stylish-haskell, since we only format with Ormolu anyway.
+          // (
+            if
+              final.stdenv.hostPlatform.isLinux
+              && final.lib.versionAtLeast hprev.ghc.version "9.8"
+              && final.lib.versionOlder hprev.ghc.version "9.10"
+            then {
+              haskell-language-server =
+                final.haskell.lib.disableCabalFlag hprev.haskell-language-server
+                "stylishhaskell";
+            }
+            else {}
           );
       };
 
@@ -136,7 +151,7 @@
           "ghc" + nixpkgs.lib.replaceStrings ["."] [""] version;
 
         ## TODO: Extract this automatically from `pkgs.haskellPackages`.
-        defaultGhcVersion = "9.8.4";
+        defaultGhcVersion = "9.10.3";
 
         ## Test the oldest revision possible for each minor release. If it’s not
         ## available in nixpkgs, test the oldest available, then try an older
@@ -145,10 +160,10 @@
         ## maps to in the nixpkgs we depend on.
         testedGhcVersions = system: [
           self.lib.defaultGhcVersion
-          "9.6.3"
-          "9.8.1"
-          "9.10.1"
-          "9.12.1"
+          "9.6.7"
+          "9.8.4"
+          "9.10.2"
+          "9.12.2"
           # "ghcHEAD" # doctest doesn’t work on current HEAD
         ];
 
@@ -164,15 +179,7 @@
 
         ## However, provide packages in the default overlay for _every_
         ## supported version.
-        supportedGhcVersions = system:
-          self.lib.testedGhcVersions system
-          ++ [
-            "9.6.4"
-            "9.6.5"
-            "9.8.2"
-            "9.10.2"
-            "9.12.2"
-          ];
+        supportedGhcVersions = self.lib.testedGhcVersions;
       };
     }
     // flake-utils.lib.eachSystem supportedSystems
@@ -203,12 +210,10 @@
         pkgs
         (map self.lib.nixifyGhcVersion (self.lib.supportedGhcVersions system))
         cabalPackages
-        (hpkgs:
-          [self.projectConfigurations.${system}.packages.path]
-          ## NB: Haskell Language Server no longer supports GHC <9.4.
-          ++ nixpkgs.lib.optional
-          (nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.4")
-          hpkgs.haskell-language-server);
+        (hpkgs: [
+          self.projectConfigurations.${system}.packages.path
+          hpkgs.haskell-language-server
+        ]);
 
       projectConfigurations =
         flaky.lib.projectConfigurations.haskell {inherit pkgs self;};
