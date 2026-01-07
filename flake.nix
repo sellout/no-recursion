@@ -116,6 +116,21 @@
                 final.haskell.lib.dontCheck hprev.binary-instances;
             }
             else {}
+          )
+          ## stylish-haskell has a different dependency hash for regex-tdfa on
+          ## Linux under GHC 9.8 than any other package, so we just remove our
+          ## need for stylish-haskell, since we only format with Ormolu anyway.
+          // (
+            if
+              final.stdenv.hostPlatform.isLinux
+              && final.lib.versionAtLeast hprev.ghc.version "9.8"
+              && final.lib.versionOlder hprev.ghc.version "9.10"
+            then {
+              haskell-language-server =
+                final.haskell.lib.disableCabalFlag hprev.haskell-language-server
+                "stylishhaskell";
+            }
+            else {}
           );
       };
 
@@ -195,12 +210,10 @@
         pkgs
         (map self.lib.nixifyGhcVersion (self.lib.supportedGhcVersions system))
         cabalPackages
-        (hpkgs:
-          [self.projectConfigurations.${system}.packages.path]
-          ## NB: Haskell Language Server no longer supports GHC <9.4.
-          ++ nixpkgs.lib.optional
-          (nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.4")
-          hpkgs.haskell-language-server);
+        (hpkgs: [
+          self.projectConfigurations.${system}.packages.path
+          hpkgs.haskell-language-server
+        ]);
 
       projectConfigurations =
         flaky.lib.projectConfigurations.haskell {inherit pkgs self;};
