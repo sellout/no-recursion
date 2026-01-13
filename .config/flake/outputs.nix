@@ -63,9 +63,6 @@ in
               (self.lib.supportedGhcVersions final.system))
             (final: prev:
               nixpkgs.lib.composeManyExtensions [
-                ## TODO: I think this overlay is only needed by formatters,
-                ##       devShells, etc., so it shouldn’t be included in the
-                ##       standard overlay.
                 (flaky.overlays.haskellDependencies final prev)
                 (self.overlays.haskell final prev)
                 (self.overlays.haskellDependencies final prev)
@@ -78,20 +75,7 @@ in
       ## NB: Dependencies that are overridden because they are broken in
       ##     Nixpkgs should be pushed upstream to Flaky. This is for
       ##     dependencies that we override for reasons local to the project.
-      haskellDependencies = final: prev: hfinal: hprev:
-        {
-          network = final.haskell.lib.dontCheck hprev.network;
-          warp = final.haskell.lib.dontCheck hprev.warp;
-        }
-        ## binary-instances test currently failing on GHC 9.12.1.
-        // (
-          if final.lib.versionOlder "9.12.0" hprev.ghc.version
-          then {
-            binary-instances =
-              final.haskell.lib.dontCheck hprev.binary-instances;
-          }
-          else {}
-        );
+      haskellDependencies = final: prev: hfinal: hprev: {};
     };
 
     homeConfigurations =
@@ -111,7 +95,7 @@ in
         "ghc" + nixpkgs.lib.replaceStrings ["."] [""] version;
 
       ## TODO: Extract this automatically from `pkgs.haskellPackages`.
-      defaultGhcVersion = "9.8.4";
+      defaultGhcVersion = "9.10.3";
 
       ## Test the oldest revision possible for each minor release. If it’s not
       ## available in nixpkgs, test the oldest available, then try an older
@@ -120,10 +104,10 @@ in
       ## maps to in the nixpkgs we depend on.
       testedGhcVersions = system: [
         self.lib.defaultGhcVersion
-        "9.6.3"
-        "9.8.1"
-        "9.10.1"
-        "9.12.1"
+        "9.6.7"
+        "9.8.4"
+        "9.10.2"
+        "9.12.2"
         # "ghcHEAD" # doctest doesn’t work on current HEAD
       ];
 
@@ -135,19 +119,12 @@ in
         "9.8.1"
         "9.10.1"
         "9.12.1"
+        "9.14.1"
       ];
 
       ## However, provide packages in the default overlay for _every_
       ## supported version.
-      supportedGhcVersions = system:
-        self.lib.testedGhcVersions system
-        ++ [
-          "9.6.4"
-          "9.6.5"
-          "9.8.2"
-          "9.10.2"
-          "9.12.2"
-        ];
+      supportedGhcVersions = self.lib.testedGhcVersions;
     };
   }
   // flake-utils.lib.eachSystem supportedSystems
@@ -180,9 +157,9 @@ in
       cabalPackages
       (hpkgs:
         [self.projectConfigurations.${system}.packages.path]
-        ## NB: Haskell Language Server no longer supports GHC <9.4.
+        ## NB: Haskell Language Server no longer supports GHC <9.6.
         ++ nixpkgs.lib.optional
-        (nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.4")
+        (nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.6")
         hpkgs.haskell-language-server);
 
     projectConfigurations =
