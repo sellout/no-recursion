@@ -159,7 +159,12 @@ in
         [self.projectConfigurations.${system}.packages.path]
         ## NB: Haskell Language Server no longer supports GHC <9.6.
         ++ nixpkgs.lib.optional
-        (nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.6")
+        (nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.6"
+          ## TODO: With Nixpkgs 25.11, HLS complains about conflicting package
+          ##       versions in these combinations, so skip it.
+          && !(pkgs.stdenv.hostPlatform.isLinux
+            && nixpkgs.lib.versionAtLeast hpkgs.ghc.version "9.8"
+            && nixpkgs.lib.versionOlder hpkgs.ghc.version "9.10"))
         hpkgs.haskell-language-server);
 
     projectConfigurations =
