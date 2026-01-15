@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog 1.1](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to the [Haskell Package Versioning Policy](https://pvp.haskell.org/).
 
+## [0.4.0.0] – 2026-01-15
+
+### Added
+
+- Support for GHC 9.14
+
+### Removed
+
+- Support for Cabal <3.10.3 (due to haskell/cabal#9375)
+
 ## [0.3.0.0] – 2025-11-05
 
 ### Added
@@ -77,6 +87,7 @@ Universal-FOSS-exception-1.0 OR LicenseRef-commercial`
 
 - Initial release of this package.
 
+[0.4.0.0]: https://github.com/sellout/no-recursion/compare/v0.3.0.0...v0.4.0.0
 [0.3.0.0]: https://github.com/sellout/no-recursion/compare/v0.2.0.0...v0.3.0.0
 [0.2.0.0]: https://github.com/sellout/no-recursion/compare/v0.1.2.3...v0.2.0.0
 [0.1.2.3]: https://github.com/sellout/no-recursion/compare/v0.1.2.2...v0.1.2.3
