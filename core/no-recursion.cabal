@@ -3,7 +3,7 @@ cabal-version: 3.0
 --   exception.
 
 name: no-recursion
-version: 0.3.0.0
+version: 0.4.0.0
 synopsis: A GHC plugin to remove support for recursion
 description: General recursion can be the cause of a lot of problems. This
              removes recursion from GHC, allowing you to guarantee you’re using
@@ -13,7 +13,7 @@ author: Greg Pfeil <greg@technomadic.org>
 copyright: 2024 Greg Pfeil
 -- TODO: Remove the redundant `OR AGPL-3.0-only` once
 --       haskell/hackage-server#1440 is fixed.
-license: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR AGPL-3.0-only OR LicenseRef-commercial
+license: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR LicenseRef-commercial
 license-files:
   LICENSE
   LICENSE.AGPL-3.0-only
