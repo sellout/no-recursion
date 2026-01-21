@@ -1,0 +1,625 @@
+#+title: Programming without Recursion
+#+author: Greg Pfeil (Sellout) <greg@technomadic.org>
+#+date: 2025 December 5, Friday
+#+options: d:(not LOGBOOK SPEAKERNOTES)
+#+drawers: SPEAKERNOTES
+#+epresent_frame_level: 3
+#+epresent_face_attributes: ((default :family "Fira Code") (epresent-title-face :height 500 :foreground "#073642" :underline nil) (epresent-heading-face :height 375 :foreground "#073642" :underline nil) (epresent-subheading-face :height 375 :foreground "#073642" :underline nil))
+#+epresent_mode_line: (" @sellout@mastodon.social" "                                    " "Programming without Recursion" "                                                                                           " (:eval (int-to-string epresent-page-number)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ↓ Mastodon                                                                                                                                                                                        slide number ↓
+
+
+
+
+
+
+
+
+:SPEAKER-NOTES:
+This is another promotional talk for one of my projects, but it’s small
+:END:
+
+* tl;dr
+
+[[https://hackage.haskell.org/package/no-recursion][NoRecursion]] GHC plugin
+
+:SPEAKER-NOTES:
+It’s a compiler plugin that prevents your code from using recursion.
+
+You simply add
+:END:
+
+Add this to your Cabal project file stanzas:
+#+begin_src cabal
+  build-depends: no-recursion ^>= {0.2.0, 0.3.0}
+  ghc-options: -fplugin=NoRecursion
+#+end_src
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+:SPEAKER-NOTES:
+to your Cabal package files and … your code no longer compiles. It’s magic!
+:END:
+
+** Magic!
+
+#+begin_example
+<no location info>: error:
+    encountered recursion, which has been disabled:
+at the top level, the following bindings were recursive: genGraph
+#+end_example
+
+#+begin_example
+<no location info>: error:
+    encountered recursion, which has been disabled:
+in $csconcat, the following bindings were recursive: go1
+#+end_example
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+** But … I like it when my code compiles
+
+:SPEAKER-NOTES:
+Oh man, me too – it’s really nice when it compiles. But you know what’s even better than code that just compiles? /Correct/ code!
+
+It’s ok, though, we can get it compiling again really easily.
+:END:
+
+#+begin_src haskell
+{-# OPTIONS_GHC -fplugin-opt=NoRecursion:allow-recursion:true #-}
+#+end_src
+
+:SPEAKER-NOTES:
+You can also use source annotations to accomplish the same thing with a bit less noise. However, source annotations aren’t compatible with Safe Haskell, if you care about that sort of thing (which I do, but that’s a different topic).
+:END:
+
+#+begin_src haskell
+{-# ANN module "Recursion" #-}
+#+end_src
+
+#+begin_src haskell
+{-# OPTIONS_GHC -fplugin-opt=NoRecursion:ignore-decls:aRecursiveFn,anotherRecursiveFn #-}
+{-# OPTIONS_GHC -fplugin-opt=NoRecursion:ignore-methods:sconcat,stimes #-}
+#+end_src
+
+:SPEAKER-NOTES:
+A nice feature of source annotations is that you can use them at the definition site. However, they can’t apply to methods, so for cases like ~sconcat~ above, you need to use the GHC option.
+:END:
+
+#+begin_src haskell
+{-# ANN aRecursiveFn "Recursion" #-}
+#+end_src
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+** Well that seems like a lot of code that resulted in … no change?
+
+:SPEAKER-NOTES:
+You’re right – it doesn’t look like we’ve gained anything … but we have.
+:END:
+
+- alerts (compilation failures) when we introduce new recursion (at least in modules that didn’t disable the plugin completely)
+
+- auditability of recursion
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* Removing Recursion
+
+:SPEAKER-NOTES:
+Now that we know where the recursion is, we can go about removing it.
+:END:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+:SPEAKER-NOTES:
+:END:
+
+
+** What’s the alternative?
+
+- iteration?
+
+- manual unrolling?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*** Sometimes, nothing.
+
+:SPEAKER-NOTES:
+There are plenty of times we rely on recursion almost accidentally. For example, when defining a record.
+:END:
+
+#+begin_src haskell
+simpleRecord init = MyRecord {x = y + 10, y = init * 2}
+#+end_src
+
+#+begin_src haskell
+simpleRecord init =
+  let y = init * 2
+   in MyRecord {x = y + 10, y}
+#+end_src
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*** 💥 Recursion Schemes 💥
+
+[[https://personal.cis.strath.ac.uk/conor.mcbride/TotallyFree.pdf][ /Turing-Completeness Totally Free/ ]] —Conor McBride
+
+*(Don’t worry – this isn’t another recursion schemes talk!)*
+
+#+begin_src haskell
+  -- | A finite/strict @f (f (f (f (f _))))@.
+  newtype Mu f = Mu (forall a. (f a -> a) -> a)
+  -- | A possibly-infinite/lazy @f (f (f (f (f _))))@.
+  data Nu f where Nu :: (a -> f a) -> a -> Nu f
+
+  -- | A generalization of `Data.Foldable.foldr`.
+  fold :: (f a -> a) -> Mu f -> a
+  fold φ (Mu fn) = fn φ
+
+  -- | A generalization of `Data.List.unfoldr`.
+  unfold :: (a -> f a) -> a -> Nu f
+  unfold = Nu
+#+end_src
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* Why would you want to do this?
+
+- totality
+
+:SPEAKER-NOTES:
+Sure … total operations can still use an extremely large (but finite) amount of time or memory or whatever, but if you have some assurance that an operation is total, it means you know you didn’t introduce an entire class of bugs that result in things like infinite loops.
+:END:
+
+- compositionality
+
+:SPEAKER-NOTES:
+Operations on recursive structures don’t compose well. You often need to do many traversals over the data, and you have to construct a single function that gives you the full result each time. With recursion schemes, you work with “F-algebras” that do compose, and you can write individual functions that extract different data from your structure, and have other algebras that depend on the results of those algebras, and do a lot of work in a single pass.
+:END:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* So what’s the problem?
+
+:SPEAKER-NOTES:
+Why not just write your code this way – what’s the point of the plugin?
+:END:
+
+- recursion is insidious
+
+:SPEAKER-NOTES:
+[[https://hackage.haskell.org/package/yaya][Yaya]] (my recursion scheme library) was actually the motivating use case for this plugin. I touted it as a total recursion scheme library, but there were definitions that relied on GHC’s recursion, which made my claims untrue. I wanted to be able to get those out of there and make sure I couldn’t add new ones by accident.
+
+Now I‘m slowly adding ~NoRecursion~ to all of my projects.
+:END:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* caveats
+
+- NoRecursion doesn’t catch recursion you rely on from other packages
+
+:SPEAKER-NOTES:
+Unless the code is inlined, it won’t be analyzed when compiling your module. This /is/ controllable, though. I have another plugin, [[http://github.com/con-kitty/categorifier/][Categorifier]], that operates by iniining /everything/ it can until it finds certain definitions. NoRecursion could have additional options to check ~INLINABLE~ definitions if you want to /really/ avoid recursion.
+:END:
+
+- NoRecursion doesn’t even catch all recursion in your modules (yet)
+
+:SPEAKER-NOTES:
+The plugin isn’t yet complete, but it currently does a decent job of identifying recursive & mutually recursive top-level and local terms. It doesn’t identify recursion in types at all yet. (My initial use cases very much cared about terms specifically).
+:END:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.
+
+*** NoRecursion can be invisible to your consumers
+
+:SPEAKER-NOTES:
+Every dependency you add increases complexity for your consumers. Since NoRecursion is effectively a linter, it’s not necessary for consumers to build with it … and therefore, they shouldn’t need to depend on it. Here’s some boilerplate you can add to your package so that it doesn’t induce a transitive dependency downstream.
+:END:
+
+Cabal project files
+#+begin_src cabal
+flag lint
+  description: Enable linting plugins (for development of this package).
+  default: False
+  manual: True
+
+library
+  if flag(lint)
+    build-depends: no-recursion ^>= {0.2.0, 0.3.0, 0.4.0}
+    ghc-options: -fplugin=NoRecursion
+#+end_src
+
+cabal.project
+#+begin_src cabal
+flags: +lint
+#+end_src
+
+stack.yaml
+#+begin_src yaml
+  flags:
+    my-package: {lint: true}
+    my-other-package: {lint: true}
+#+end_src
+
+~-fplugin-opt~ in modules will be ignored if the relevant plugin isn’t installed, so this can be done without having to conditionalize any code.
+
+* Writing your own GHC Plugins
+
+** They’re not that complicated!
+
+But they look it!
+
+In a “real” plugin, the logic of your transformations is going to be more complicated than work of doing it as a plugin.
+
+Of course, simple plugins are useful, too, as we’ll see here.
+
+** the complicated bits
+
+Many different places for a plugin to hook into
+
+|    | hook \ plugin         | NoRecursion | RequireForAll | Categorifier |
+|----+-----------------------+-------------+---------------+--------------|
+|  1 | pluginRecompile       | ✔          | ✔            | ✔           |
+|  2 | driverPlugin          |             | ✔            | ✔           |
+|  3 | interfaceLoadAction   |             |               |              |
+|  4 | parsedResultAction    |             | ❌            |              |
+|  5 | renamedResultAction   |             | ✔            |              |
+|  6 | typeCheckResultAction |             |               |              |
+|  7 | installCoreToDos      | ✔          |               | ✔           |
+|  8 | latePlugin            |             |               |              |
+|    |                       |             |               |              |
+|  9 | tcPlugin              |             |               |              |
+| 10 | defaultingPlugin      |             |               |              |
+| 11 | holeFitPlugin         |             |               |              |
+| 12 | spliceRunAction       |             |               |              |
+
+As you can see, there are 12 distinct places here … and I think there are actually some others that aren’t exposed directly as ~Plugin~ fields.
+
+Each plugin can set any number of these that they choose to, with them working in concert to effect one coherent feature.
+
+I’ve written three real plugins and have only used five of the dozen hooks.
+
+- ~pluginRecompile~ isn’t really a hook – it just lets you tell GHC whether it should recompile modules compiled with your plugin – you can have it just /always/ recompile them, not have your plugin affect recompilation at all, or trigger recompilation based on some “fingerprint” from the previous build (e.g., have certain plugin-opts changed).
+
+- ~driverPlugin~ is a very early-stage plugin that lets you effectively add additional flags to the GHC call. For example, the ~RequireForAll~ plugin uses this hook to turn on ~ExplicitForAll~ (because without that, you /can’t/ appease the plugin) and set ~-Werror=missing-signatures~, because otherwise you can get around the plugin by not providing a top-level signature at all (signatures & function definitions aren’t tracked together in the parsed representation, so aligning them manually to see if some signature is missing is difficult – easier to just require signatures).
+
+- ~parsedResultAction~ is as close as we get to a “source” plugin. It’s the initial parsed representation. You can see I only used in one plugin, and then stopped doing that.
+
+- ~renamedResultAction~ is the next step, which has some more helpful information. This is what I changed my ~parsedResultAction~ to. One nice thing is that a few of these passes use the same representation (with type families) so I actually could reuse most of my code between the old and new version of this pass, just changing a couple functions. When I started writing the ~parsed~ one, I was debating if I was keeping things too polymorphic, rather than specializing to the outer type of the pass. But as soon as I had to switch, I was /elated/ that I hadn’t specialized, because again, all my code continued to work for the other pass.
+
+- ~installCoreToDos~ this is actually the nicest place to work (although it has a number of complexities). It is the “core” representation of Haskell – the closest thing to a typed lambda calculus. If you’re making changes that affect the logic of a program, this is the place to go – ~Categorifier~ rewrites everything to a categorical representation, so this is definitely the right representation, and ~NoRecursion~ identifies cycles, which is much harder at the syntactic level.
+
+** the ~Default~ plugin
+
+This is what you get from `defaultPlugin`. It has two effects:
+
+1. it breaks Safe Haskell and
+2. it forces any module compiled with it to be recompiled on every build.
+
+** the ~Null~ plugin
+
+This does /almost/ nothing. The one thing it does is break Safe Haskell. But it fixes the too-many-recompilations issue of the ~Default~ plugin.
+
+** a little help from my friends
+
+~ghc-plugin-utils~ is an in-flux set of utilities to help make writing plugins easier
+
+*** compatibility across GHC versions
+
+As much as possible, but there are certainly some harder-to-paper-over bits.
+
+*** option-handling, source annotation handling
+
+maybe eventually using OptEnvConf, but not yet
+
+Taking some of this further, a separate library ~PluginOptEnvConfAnn~ wraps the ~-fplugin-opt~ handling and ~ANN~ handling together with the environment variable and config file handling of ~OptEnvConf~ for a unified approach to all plugin input. (This would depend on both `ghc-plugin-utils` and `OptEnvConf`).
+
+#+begin_src haskell
+  do
+    ignoreDecls <-
+      setting
+        [ help "top-level declarations in which to ignore recursion",
+          reader POECA.identifiers,
+          name "ignoreDecl",
+          listName "ignoreDecls",
+          value "IDENTIFIER",
+          ann "NoRecursion.Opt.ignore"
+        ]
+    ignoreMethods <-
+      setting
+        [ help "type class methods in which to ignore recursion",
+          reader POECA.identifiers,
+          name "ignoreMethod",
+          listName "ignoreMethods",
+          value "IDENTIFIER"
+          -- methods aren’t top-level, so they can’t be ignored via @ANN@
+        ]
+    pure Opts {..}
+#+end_src
+
+**** some questions
+
+- can you specify the same ~-fplugin-opt~ more than once on the command line?
+  - because of the extra verbosity, we should generally always support submitting a list rather than repeated arguments
+- we should be able to define a list-of-identifiers argument that maps to a collection of `ANN`. E.g.,
+
+#+begin_src haskell
+  {-# OPTIONS_GHC -fplugin-opt ignoreDecls=someDecl,anotherDecl #-}
+
+  -- or
+  {-# ANN someDecl NoRecursion.Opt.ignore #-}
+  {-# ANN anotherDecl NoRecursion.Opt.ignore #-}
+
+  -- or
+  {-# ANN someDecl "NoRecursion.Opt.ignore" #-}
+  {-# ANN anotherDecl "NoRecursion.Opt.ignore" #-}
+#+end_src
+
+  should all be equivalent. The last one means that the user doesn’t need to import the library. I don’t know if its worthwhile.
+
+*** recompilation inference
+
+This isn’t perfect, and can still be overridden, but ~ghc-plugin-utils~ (and ~PluginOptEnvConfAnn~) will try to infer a reasonable definition for ~pluginRecompile~, based on the various options, env vars, etc. that are defined.
+
+*BTW*, the provided ~flagRecompile~ will recompile on any change to your ~-fplugin-opts~ … except for a change in the order. It assumes that ordering isn’t important, which may not be what you want.
+
+With the ~OptEnvConf~ functionality above, you’ll be able to declare which options have an order that matters, and that is taken into account with the recompilation inference.
+
+*** data passing
+
+There’s no mechanism for sharing data between most passes, but they generally operate in some wrapper over `IO`, so this provides operations for sharing data via IORefs.
+
+*** dynamic loading
+
+Plugins aren’t extensible as regular code – you can’t just define a type class that users can implement for some custom type.
+
+But … with a bit of jiggery-pokery, we can get them to give us the names of terms (via ~-fplugin-opt~, a source annotation, or some other mechanism) that satisfy a required type to be used in certain cases.
+
+~Categorifer~ takes advantage of this in multiple ways, and it can be a bit hairy, so ~ghc-plugin-utils~ holds the code for managing that.
+
+** traversing various representations
+
+Unfortunately, there is often a lot of boilerplate when implementing a plugin.
+
+GHC’s internal representations are type-rich, which is good, but it means writing a bunch of small functions, many of which may do almost nothing.
+
+(This is where I complain about them not using recursion schemes and composable data types, rather than their type family approach.)
+
+~ghc-plugin-utils~ can help a bit here as well – it has functions for collecting pieces from the various representation types.
+
+In a plugin like ~Categorifier~, the traversal isn’t so bad. But … we also offload some of it from the plugin proper.
