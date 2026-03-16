@@ -174,7 +174,7 @@ test-suite doctests
     tests
   main-is: doctests.hs
   build-depends:
-    doctest ^>= {0.21.1, 0.22.2, 0.24.0},
+    doctest ^>= {0.18.2, 0.20.1, 0.21.1, 0.22.2, 0.24.0},
     no-recursion,
   -- TODO: The sections below here are necessary because we don’t have control
   --       over the generated `Build_doctests.hs` file. So we have to silence
