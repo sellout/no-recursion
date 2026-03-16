@@ -26,6 +26,8 @@ extra-doc-files:
   docs/*.md
 tested-with:
   GHC == {
+    9.2.1,
+    9.4.1, 9.4.8,
     9.6.1, 9.6.7,
     9.8.1, 9.8.4,
     9.10.1, 9.10.2, 9.10.3,
@@ -61,7 +63,7 @@ custom-setup
     --       9.8.3 include an older Cabal, so a newer one may need to be
     --       manually installed.
     Cabal >= 3.10.3 && < 99,
-    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
+    base ^>= {4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
     cabal-doctest ^>= {1.0.0},
 
 flag noisy-deprecations
@@ -106,7 +108,7 @@ common GHC2024
 common defaults
   import: GHC2024
   build-depends:
-    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
+    base ^>= {4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
     ghc-compat-plugin ^>= {0.1.0},
   ghc-options:
     -Weverything
@@ -148,7 +150,7 @@ common defaults
     NoTypeApplications
   if flag(noisy-deprecations)
     cpp-options: -DSELLOUT_NOISY_DEPRECATIONS
-  if flag(lint)
+  if flag(lint) && impl(ghc >= 9.4.2)
     build-depends:
       henforcer ^>= {1.0.0},
     ghc-options:
@@ -159,7 +161,7 @@ library
   hs-source-dirs:
     src
   build-depends:
-    ghc ^>= {9.6.1, 9.8.1, 9.10.1, 9.12.1, 9.14.1},
+    ghc ^>= {9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1, 9.12.1, 9.14.1},
   exposed-modules:
     NoRecursion
   other-modules:

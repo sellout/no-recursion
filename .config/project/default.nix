@@ -87,6 +87,9 @@
               && builtins.elem sys ["macos-15" "ubuntu-24.04-arm"]
               ## GHC 9.2.1 relied on libnuma at runtime for aarch64
               || ghc == "9.2.1" && sys == "ubuntu-24.04-arm"
+              ## Local failures
+              || lib.versionOlder ghc "9.6" && sys == "macos-15"
+              || ghc == "9.4.1" && sys == "windows-2025"
             then []
             else [
               "build (${ghc}, ${sys})"
@@ -106,6 +109,18 @@
     inherit (self.lib) defaultGhcVersion;
     ghcVersions = self.lib.nonNixTestedGhcVersions;
     cabalPackages = {"${config.project.name}" = "core";};
+    ## TODO: Figure out why these builds fail.
+    exclude =
+      (map (ghc: {
+        inherit ghc;
+        os = "macos-15";
+      }) ["9.2.1" "9.4.1"])
+      ++ [
+        {
+          ghc = "9.4.1";
+          os = "windows-2025";
+        }
+      ];
     ## The latest Stackage LTS that we also build on GitHub for.
     latestGhcVersion = "9.10.1";
   };
