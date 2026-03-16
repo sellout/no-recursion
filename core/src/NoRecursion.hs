@@ -1,8 +1,11 @@
 {-# LANGUAGE Unsafe #-}
 
--- | A plugin that identifies and reports on uses of recursion. The name evokes
---   a language pragma – implying a @Recursion@ pragma that is enabled by
---   default.
+-- |
+-- Copyright: 2024 Greg Pfeil
+-- License: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR LicenseRef-proprietary
+--
+-- A plugin that identifies and reports on uses of recursion. The name evokes a
+-- language pragma – implying a @Recursion@ pragma that is enabled by default.
 module NoRecursion (plugin) where
 
 import safe "base" Control.Applicative (liftA2, pure)
@@ -40,6 +43,8 @@ import safe "this" PluginUtils
   )
 
 -- | The entrypoint for the "NoRecursion" plugin.
+--
+-- @since 0.1.0
 plugin :: Plugins.Plugin
 plugin =
   defaultPurePlugin

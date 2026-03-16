@@ -3,6 +3,9 @@
 {-# OPTIONS_GHC -fplugin-opt=NoRecursion:ignore-method-cycles:true #-}
 {-# OPTIONS_GHC -fplugin-opt=NoRecursion:ignore-methods:sconcat,stimes #-}
 
+-- |
+-- Copyright: 2025 Greg Pfeil
+-- License: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR LicenseRef-proprietary
 module Test.IgnoreDefaultImpls
   ( Example (Empty, NotEmpty),
   )
@@ -14,6 +17,9 @@ import "base" Data.Monoid (Monoid, mappend, mempty)
 import "base" Data.Semigroup (Semigroup, (<>))
 import "base" Data.Tuple (curry)
 
+-- | A trivial data type for testing instances.
+--
+-- @since 0.2.0
 type Example :: Type
 data Example
   = Empty

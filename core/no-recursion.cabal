@@ -5,20 +5,19 @@ cabal-version: 3.0
 name: no-recursion
 version: 0.4.0.0
 synopsis: A GHC plugin to remove support for recursion
-description: General recursion can be the cause of a lot of problems. This
-             removes recursion from GHC, allowing you to guarantee you’re using
-             other mechanisms, like recursion schemes.
+description:
+  General recursion can be the cause of a lot of problems. This removes
+  recursion from GHC, allowing you to guarantee you’re using other mechanisms,
+  like recursion schemes.
 maintainer: Greg Pfeil <greg@technomadic.org>
 author: Greg Pfeil <greg@technomadic.org>
 copyright: 2024 Greg Pfeil
--- TODO: Remove the redundant `OR AGPL-3.0-only` once
---       haskell/hackage-server#1440 is fixed.
-license: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR LicenseRef-commercial
+license: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR LicenseRef-proprietary
 license-files:
   LICENSE
   LICENSE.AGPL-3.0-only
   LICENSE.Universal-FOSS-exception-1.0
-  LICENSE.commercial
+  LICENSE.proprietary
 category: Recursion
 build-type: Custom
 extra-doc-files:
@@ -27,6 +26,8 @@ extra-doc-files:
   docs/*.md
 tested-with:
   GHC == {
+    9.2.1,
+    9.4.1, 9.4.8,
     9.6.1, 9.6.7,
     9.8.1, 9.8.4,
     9.10.1, 9.10.2, 9.10.3,
@@ -36,10 +37,18 @@ tested-with:
 
 homepage: https://github.com/sellout/no-recursion#readme
 bug-reports: https://github.com/sellout/no-recursion/issues
+
 source-repository head
   type: git
   location: https://github.com/sellout/no-recursion.git
   subdir: core
+
+source-repository this
+  type: git
+  location: https://github.com/sellout/no-recursion.git
+  subdir: core
+  -- NB: This is the repo version, which is distinct from the package version.
+  tag: v0.4.0.0
 
 custom-setup
   setup-depends:
@@ -54,7 +63,7 @@ custom-setup
     --       9.8.3 include an older Cabal, so a newer one may need to be
     --       manually installed.
     Cabal >= 3.10.3 && < 99,
-    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
+    base ^>= {4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
     cabal-doctest ^>= {1.0.0},
 
 flag noisy-deprecations
@@ -66,6 +75,14 @@ flag noisy-deprecations
     there’s a name collision and the namespace you’re referencing is the one
     that’s deprecated.
   default: True
+  -- Because disabling this flag won’t help the solver.
+  manual: True
+
+flag lint
+  description:
+    Build with linting plugins enabled. This is intended for developers of this
+    package.
+  default: False
   -- Because disabling this flag won’t help the solver.
   manual: True
 
@@ -91,7 +108,8 @@ common GHC2024
 common defaults
   import: GHC2024
   build-depends:
-    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
+    base ^>= {4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
+    ghc-compat-plugin ^>= {0.1.0},
   ghc-options:
     -Weverything
     -- This one just reports unfixable things, AFAICT.
@@ -102,6 +120,9 @@ common defaults
     -- Warns even when `Unsafe` is explicit, not inferred. See
     -- https://gitlab.haskell.org/ghc/ghc/-/issues/16689
     -Wno-unsafe
+    -fplugin GhcCompat
+    -fplugin-opt GhcCompat:minVersion=9.6.1
+    -fplugin-opt GhcCompat:reportIncompatibleExtensions=error
   if impl(ghc >= 9.8.1)
     ghc-options:
       -- Inference good.
@@ -129,13 +150,18 @@ common defaults
     NoTypeApplications
   if flag(noisy-deprecations)
     cpp-options: -DSELLOUT_NOISY_DEPRECATIONS
+  if flag(lint) && impl(ghc >= 9.4.2)
+    build-depends:
+      henforcer ^>= {1.0.0},
+    ghc-options:
+      -fplugin Henforcer
 
 library
   import: defaults
   hs-source-dirs:
     src
   build-depends:
-    ghc ^>= {9.6.1, 9.8.1, 9.10.1, 9.12.1, 9.14.1},
+    ghc ^>= {9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1, 9.12.1, 9.14.1},
   exposed-modules:
     NoRecursion
   other-modules:
@@ -148,7 +174,7 @@ test-suite doctests
     tests
   main-is: doctests.hs
   build-depends:
-    doctest ^>= {0.21.1, 0.22.2, 0.24.0},
+    doctest ^>= {0.18.2, 0.20.1, 0.21.1, 0.22.2, 0.24.0},
     no-recursion,
   -- TODO: The sections below here are necessary because we don’t have control
   --       over the generated `Build_doctests.hs` file. So we have to silence
