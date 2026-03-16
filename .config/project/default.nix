@@ -66,7 +66,7 @@
     inherit (self.lib) defaultGhcVersion;
     ghcVersions = self.lib.nonNixTestedGhcVersions;
     cabalPackages = {"${config.project.name}" = "core";};
-    extraDependencyVersions = ["doctest-0.24.0"];
+    checkBounds.extraDependencyVersions = ["doctest-0.24.0"];
     latestGhcVersion = "9.10.1";
   };
 
