@@ -9,7 +9,8 @@ module Main
 where
 
 import "base" Control.Applicative (pure)
-import "base" Data.Function (const, ($))
+import "base" Data.Function (($))
+import "base" Data.Functor (void)
 import "base" System.IO (IO)
 import "this" Test.IgnoreDefaultImpls qualified as IgnoreDefaultImpls
 
@@ -17,4 +18,4 @@ import "this" Test.IgnoreDefaultImpls qualified as IgnoreDefaultImpls
 --
 -- @since 0.2.0
 main :: IO ()
-main = pure $ const () IgnoreDefaultImpls.Empty
+main = void $ pure IgnoreDefaultImpls.Empty

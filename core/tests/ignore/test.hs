@@ -10,7 +10,8 @@ where
 
 import safe "base" Control.Applicative (pure)
 import safe "base" Control.Category ((.))
-import safe "base" Data.Function (const, ($))
+import safe "base" Data.Function (($))
+import safe "base" Data.Functor (void)
 import safe "base" System.IO (IO)
 import safe "this" Test.AllowRecursion qualified as AllowRecursion
 import "this" Test.AnnModule qualified as AnnModule
@@ -23,9 +24,9 @@ import safe "this" Test.UnannName qualified as UnannName
 -- @since 0.1.1
 main :: IO ()
 main =
-  pure
+  void
+    . pure
     . AllowRecursion.nonRecDef
     . AnnModule.nonRecDef
     . AnnName.nonRecDef
-    . UnannName.nonRecDef
-    $ const () IgnoreDefaultImpls.Empty
+    $ UnannName.nonRecDef IgnoreDefaultImpls.Empty
