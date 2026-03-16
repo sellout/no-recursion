@@ -1,6 +1,6 @@
 # NoRecursion plugin
 
-[![Hackage Version](https://img.shields.io/hackage/v/no-recursion)](https://hackage.haskell.org/package/)
+[![Hackage Version](https://img.shields.io/hackage/v/no-recursion)](https://hackage.haskell.org/package/no-recursion)
 [![Packaging status](https://repology.org/badge/tiny-repos/haskell:no-recursion.svg)](https://repology.org/project/haskell:no-recursion/versions)
 [![latest packaged versions](https://repology.org/badge/latest-versions/haskell:no-recursion.svg)](https://repology.org/project/haskell:no-recursion/versions)
 

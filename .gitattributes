@@ -18,6 +18,7 @@
 /core/LICENSE linguist-generated
 /core/LICENSE.AGPL-3.0-only linguist-generated
 /core/LICENSE.Universal-FOSS-exception-1.0 linguist-generated
-/core/LICENSE.commercial linguist-generated
+/core/LICENSE.proprietary linguist-generated
+/core/henforcer.toml linguist-generated
 /garnix.yaml linguist-generated
 /nix-ci.nix linguist-generated

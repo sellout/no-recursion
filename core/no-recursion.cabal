@@ -5,20 +5,19 @@ cabal-version: 3.0
 name: no-recursion
 version: 0.4.0.0
 synopsis: A GHC plugin to remove support for recursion
-description: General recursion can be the cause of a lot of problems. This
-             removes recursion from GHC, allowing you to guarantee you’re using
-             other mechanisms, like recursion schemes.
+description:
+  General recursion can be the cause of a lot of problems. This removes
+  recursion from GHC, allowing you to guarantee you’re using other mechanisms,
+  like recursion schemes.
 maintainer: Greg Pfeil <greg@technomadic.org>
 author: Greg Pfeil <greg@technomadic.org>
 copyright: 2024 Greg Pfeil
--- TODO: Remove the redundant `OR AGPL-3.0-only` once
---       haskell/hackage-server#1440 is fixed.
-license: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR LicenseRef-commercial
+license: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR LicenseRef-proprietary
 license-files:
   LICENSE
   LICENSE.AGPL-3.0-only
   LICENSE.Universal-FOSS-exception-1.0
-  LICENSE.commercial
+  LICENSE.proprietary
 category: Recursion
 build-type: Custom
 extra-doc-files:
@@ -36,10 +35,18 @@ tested-with:
 
 homepage: https://github.com/sellout/no-recursion#readme
 bug-reports: https://github.com/sellout/no-recursion/issues
+
 source-repository head
   type: git
   location: https://github.com/sellout/no-recursion.git
   subdir: core
+
+source-repository this
+  type: git
+  location: https://github.com/sellout/no-recursion.git
+  subdir: core
+  -- NB: This is the repo version, which is distinct from the package version.
+  tag: v0.4.0.0
 
 custom-setup
   setup-depends:
@@ -69,6 +76,14 @@ flag noisy-deprecations
   -- Because disabling this flag won’t help the solver.
   manual: True
 
+flag lint
+  description:
+    Build with linting plugins enabled. This is intended for developers of this
+    package.
+  default: False
+  -- Because disabling this flag won’t help the solver.
+  manual: True
+
 -- This mimics the GHC2024 extension
 -- (https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/control.html?highlight=doandifthenelse#extension-GHC2024),
 -- but supporting compilers back to GHC 7.10. If the oldest supported compiler
@@ -92,6 +107,7 @@ common defaults
   import: GHC2024
   build-depends:
     base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
+    ghc-compat-plugin ^>= {0.1.0},
   ghc-options:
     -Weverything
     -- This one just reports unfixable things, AFAICT.
@@ -102,6 +118,9 @@ common defaults
     -- Warns even when `Unsafe` is explicit, not inferred. See
     -- https://gitlab.haskell.org/ghc/ghc/-/issues/16689
     -Wno-unsafe
+    -fplugin GhcCompat
+    -fplugin-opt GhcCompat:minVersion=9.6.1
+    -fplugin-opt GhcCompat:reportIncompatibleExtensions=error
   if impl(ghc >= 9.8.1)
     ghc-options:
       -- Inference good.
@@ -129,6 +148,11 @@ common defaults
     NoTypeApplications
   if flag(noisy-deprecations)
     cpp-options: -DSELLOUT_NOISY_DEPRECATIONS
+  if flag(lint)
+    build-depends:
+      henforcer ^>= {1.0.0},
+    ghc-options:
+      -fplugin Henforcer
 
 library
   import: defaults
