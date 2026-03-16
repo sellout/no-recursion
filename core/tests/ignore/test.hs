@@ -1,5 +1,13 @@
 {-# LANGUAGE Trustworthy #-}
 
+-- |
+-- Copyright: 2024 Greg Pfeil
+-- License: AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR LicenseRef-proprietary
+module Main
+  ( main,
+  )
+where
+
 import safe "base" Control.Applicative (pure)
 import safe "base" Control.Category ((.))
 import safe "base" Data.Function (const, ($))
@@ -10,6 +18,9 @@ import "this" Test.AnnName qualified as AnnName
 import safe "this" Test.IgnoreDefaultImpls qualified as IgnoreDefaultImpls
 import safe "this" Test.UnannName qualified as UnannName
 
+-- | The test-suite entry point.
+--
+-- @since 0.1.1
 main :: IO ()
 main =
   pure
