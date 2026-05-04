@@ -126,5 +126,8 @@
   };
 
   ## publishing
-  services.github.settings.repository.topics = ["recursion" "plugin"];
+  services.github.settings.repository = {
+    private = false;
+    topics = ["recursion" "plugin"];
+  };
 }
