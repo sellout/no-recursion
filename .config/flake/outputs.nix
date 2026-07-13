@@ -107,8 +107,7 @@ in
         "9.4.8"
         "9.6.7"
         "9.8.4"
-        "9.10.2"
-        "9.12.2"
+        "9.12.3"
         # "ghcHEAD" # doctest doesn’t work on current HEAD
       ];
 
@@ -127,7 +126,8 @@ in
 
       ## However, provide packages in the default overlay for _every_
       ## supported version.
-      supportedGhcVersions = self.lib.testedGhcVersions;
+      supportedGhcVersions = system:
+        self.lib.testedGhcVersions system ++ ["9.12.4"];
     };
   }
   // flake-utils.lib.eachSystem supportedSystems
