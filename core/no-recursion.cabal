@@ -3,7 +3,7 @@ cabal-version: 3.0
 --   exception.
 
 name: no-recursion
-version: 0.4.0.0
+version: 0.4.0.1
 synopsis: A GHC plugin to remove support for recursion
 description:
   General recursion can be the cause of a lot of problems. This removes
@@ -48,7 +48,7 @@ source-repository this
   location: https://github.com/sellout/no-recursion.git
   subdir: core
   -- NB: This is the repo version, which is distinct from the package version.
-  tag: v0.4.0.0
+  tag: v0.4.1
 
 custom-setup
   setup-depends:
@@ -121,7 +121,7 @@ common defaults
     -- https://gitlab.haskell.org/ghc/ghc/-/issues/16689
     -Wno-unsafe
     -fplugin GhcCompat
-    -fplugin-opt GhcCompat:minVersion=9.6.1
+    -fplugin-opt GhcCompat:minVersion=9.2.1
     -fplugin-opt GhcCompat:reportIncompatibleExtensions=error
   if impl(ghc >= 9.8.1)
     ghc-options:
