@@ -24,6 +24,13 @@ extra-doc-files:
   CHANGELOG.md
   README.md
   docs/*.md
+extra-source-files:
+  -- NOTE: These are compiled by the “recursion-errors” test-suite, which
+  --       invokes GHC directly, so they’re deliberately not in any component’s
+  --       `hs-source-dirs`.
+  tests/fixtures/*.hs
+  -- NOTE: The placeholder that makes Cabal run `Setup.hs`’ preprocessor.
+  tests/errors/Build_fixtures.invocation
 tested-with:
   GHC == {
     9.2.1,
@@ -57,14 +64,12 @@ custom-setup
     --       as high as `cabal-version` at the top of this file, and Hackage
     --       requires it to have _some_ upper bound. (Since there’s no direct
     --       dependency, it doesn’t use PVP bounds.)
-    --
-    -- TODO: Due to haskell/cabal#9375, 3.10.3 is required in order to load
-    --       plugins from a `ghc-options` field. Unfortunately, GHCs prior to
-    --       9.8.3 include an older Cabal, so a newer one may need to be
-    --       manually installed.
-    Cabal >= 3.10.3 && < 99,
+    Cabal >= 3.0 && < 99,
     base ^>= {4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
     cabal-doctest ^>= {1.0.0},
+    -- NOTE: For `Setup.hs`’ own path handling, writing the module that says how
+    --       to invoke GHC for the “recursion-errors” fixtures.
+    filepath ^>= {1.4.2, 1.5.2},
 
 flag noisy-deprecations
   description:
@@ -226,31 +231,25 @@ test-suite doctests
     -- doctests.hs, which is `Unsafe`.
     Unsafe
 
-test-suite annotations
+test-suite recursion-errors
   import: defaults
   type: exitcode-stdio-1.0
   build-depends:
+    directory ^>= {1.3.6},
+    filepath ^>= {1.4.2, 1.5.2},
+    hspec ^>= {2.7.1, 2.9.3, 2.11.0},
+    -- NOTE: Needed even if we don’t use @-fplugin@ plugin, to ensure it’s built
+    --       before tests try to load it.
     no-recursion,
+    process ^>= {1.6.13},
   ghc-options:
+    -Wno-unused-packages
+    -- NOTE: Not needed to run the fixtures, which enable the plugin in their
+    --       own `OPTIONS_GHC` pragmas. This is what checks “can a plugin be
+    --       loaded from a `ghc-options` field at all?”
     -fplugin NoRecursion
-  hs-source-dirs: tests/ignore
+  hs-source-dirs: tests/errors
   main-is: test.hs
-  other-modules:
-    Test.AllowRecursion
-    Test.AnnModule
-    Test.AnnName
-    Test.IgnoreDefaultImpls
-    Test.UnannName
-
-test-suite no-ignore-annotations
-  import: defaults
-  type: exitcode-stdio-1.0
-  build-depends:
-    no-recursion,
-  ghc-options:
-    -fplugin NoRecursion
-    -fplugin-opt NoRecursion:ignore-method-cycles:false
-  hs-source-dirs: tests/no-ignore
-  main-is: test.hs
-  other-modules:
-    Test.IgnoreDefaultImpls
+  -- NOTE: Written by the preprocessor `Setup.hs` registers, which is where the
+  --       compiler and the package database of the unit just built are known.
+  other-modules: Build_fixtures
