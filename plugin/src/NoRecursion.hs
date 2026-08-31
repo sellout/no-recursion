@@ -11,11 +11,14 @@ module NoRecursion (Opts, defaultOpts, plugin) where
 import safe "base" Control.Applicative (liftA2, pure)
 import safe "base" Control.Category ((.))
 import safe "base" Data.Either (Either (Left), either)
-import safe "base" Data.Foldable (foldrM, toList)
+import safe "base" Data.Foldable (foldr, toList, traverse_)
 import safe "base" Data.Function (($))
-import safe "base" Data.Functor (fmap, (<$>))
+import safe "base" Data.Functor (fmap, (<$), (<$>))
 import safe "base" Data.List (intercalate, reverse)
+import safe "base" Data.List.NonEmpty (nonEmpty)
 import safe "base" Data.Semigroup ((<>))
+import safe "base" Data.String (String)
+import safe "base" Data.Tuple (uncurry)
 import "ghc" GHC.Plugins qualified as Plugins
 import "this" NoRecursion.Internal
   ( Opts (allowRecursion, ignoreMethodCycles, ignoredDecls, ignoredMethods),
@@ -32,19 +35,21 @@ import safe "this" PluginUtils.Options qualified as Opts
 plugin :: Plugins.Plugin
 plugin =
   defaultPurePlugin
-    { Plugins.installCoreToDos = \opts -> liftA2 install (parseOpts opts) . pure
+    { Plugins.installCoreToDos = \opts -> liftA2 install (parseOptions opts) . pure
     }
 
-parseOpts :: [Plugins.CommandLineOption] -> Plugins.CoreM Opts
+-- | Reads every option, collecting what went wrong separately from what was
+--   understood, so that one bad option cannot hide the next.
+--
+--   Options are applied in the order they were given, so the last one wins –
+--   which is what makes an @OPTIONS_GHC@ pragma override a package-wide
+--   @ghc-options@ entry.
+parseOpts :: [Plugins.CommandLineOption] -> ([(String, Opts.Error)], Opts)
 parseOpts =
-  foldrM
-    ( \opt opts ->
+  foldr
+    ( \opt (errs, opts) ->
         let (name, mvalue) = Opts.process opt
-            err =
-              fmap (\() -> opts)
-                . Plugins.errorMsg
-                . Opts.prettyError "NoRecursion" name
-         in either err pure case name of
+         in either (\e -> ((name, e) : errs, opts)) (errs,) case name of
               "allowRecursion" ->
                 (\v -> opts {allowRecursion = v}) <$> Opts.parseBool mvalue
               "ignoreMethodCycles" ->
@@ -57,11 +62,32 @@ parseOpts =
                   <$> Opts.parseRequiringVal (pure . Opts.parseList) "List" mvalue
               _ -> Left Opts.UnknownOption
     )
-    defaultOpts
+    ([], defaultOpts)
     -- NOTE: Starting with GHC 8.6, plugin option order is reversed from what is
     --       given on the command line. This restores it, so that the last option
     --       wins.
     . reverse
+
+-- | Stops the compilation if any option was malformed, describing all of them.
+--
+-- NOTE: `Plugins.errorMsg` prints a message the build then goes on to ignore,
+--       so a mistyped option silently did nothing. A `Plugins.GhcException` is
+--       reported as the compile error it is.
+parseOptions :: [Plugins.CommandLineOption] -> Plugins.CoreM Opts
+parseOptions options = do
+  dflags <- Plugins.getDynFlags
+  let (errs, opts) = parseOpts options
+  opts
+    <$ traverse_
+      ( Plugins.liftIO
+          . Plugins.throwGhcExceptionIO
+          . Plugins.ProgramError
+          . Plugins.showSDoc dflags
+          . Plugins.vcat
+          . toList
+          . fmap (uncurry (Opts.prettyError "NoRecursion"))
+      )
+      (nonEmpty errs)
 
 install :: Opts -> [Plugins.CoreToDo] -> [Plugins.CoreToDo]
 install opts =
