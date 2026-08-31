@@ -11,10 +11,10 @@ module NoRecursion (Opts, defaultOpts, plugin) where
 import safe "base" Control.Applicative (liftA2, pure)
 import safe "base" Control.Category ((.))
 import safe "base" Data.Either (Either (Left), either)
-import safe "base" Data.Foldable (foldr, toList, traverse_)
+import safe "base" Data.Foldable (foldl', toList, traverse_)
 import safe "base" Data.Function (($))
 import safe "base" Data.Functor (fmap, (<$), (<$>))
-import safe "base" Data.List (intercalate, reverse)
+import safe "base" Data.List (intercalate)
 import safe "base" Data.List.NonEmpty (nonEmpty)
 import safe "base" Data.Semigroup ((<>))
 import safe "base" Data.String (String)
@@ -43,13 +43,16 @@ plugin =
 --
 --   Options are applied in the order they were given, so the last one wins –
 --   which is what makes an @OPTIONS_GHC@ pragma override a package-wide
---   @ghc-options@ entry.
+--   @ghc-options@ entry. That the list arrives in command-line order is a claim
+--   about GHC rather than about this code, so it is pinned down by the
+--   option-order entries in the @recursion-errors@ test-suite, which run against
+--   every supported compiler.
 parseOpts :: [Plugins.CommandLineOption] -> ([(String, Opts.Error)], Opts)
 parseOpts =
-  foldr
-    ( \opt (errs, opts) ->
+  foldl'
+    ( \(errs, opts) opt ->
         let (name, mvalue) = Opts.process opt
-         in either (\e -> ((name, e) : errs, opts)) (errs,) case name of
+         in either (\e -> (errs <> [(name, e)], opts)) (errs,) case name of
               "allowRecursion" ->
                 (\v -> opts {allowRecursion = v}) <$> Opts.parseBool mvalue
               "ignoreMethodCycles" ->
@@ -63,10 +66,6 @@ parseOpts =
               _ -> Left Opts.UnknownOption
     )
     ([], defaultOpts)
-    -- NOTE: Starting with GHC 8.6, plugin option order is reversed from what is
-    --       given on the command line. This restores it, so that the last option
-    --       wins.
-    . reverse
 
 -- | Stops the compilation if any option was malformed, describing all of them.
 --
