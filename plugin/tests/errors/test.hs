@@ -16,6 +16,7 @@ module Main
   )
 where
 
+import safe "base" Control.Applicative (pure)
 import safe "base" Control.Category ((.))
 import safe "base" Data.Bool (Bool (True), not, (&&))
 import safe "base" Data.Foldable (traverse_)
@@ -49,9 +50,13 @@ type Expectation :: Type
 data Expectation
   = -- | The module must compile.
     Compiles
-  | -- | Compilation must fail, with a message mentioning every string in the
-    --   first list and none of the strings in the second.
+  | -- | Compilation must fail with a recursion report, mentioning every string
+    --   in the first list and none of the strings in the second.
     Rejected [String] [String]
+  | -- | Compilation must fail before any recursion is looked for — over a
+    --   malformed plugin option, say — with a message mentioning every string
+    --   given.
+    Invalid [String]
 
 -- | Where the fixtures live, relative to the package directory.
 fixtureDir :: FilePath
@@ -63,7 +68,7 @@ fixtureDir = "tests" </> "fixtures"
 panicky :: [String]
 panicky = ["panic", "internal error"]
 
--- | Every rejection message the plugin produces starts with this.
+-- | Every recursion report starts with this.
 rejectionPrefix :: String
 rejectionPrefix = "encountered recursion"
 
@@ -80,8 +85,8 @@ spec = describe "the fixtures" do
   it "rejects a top-level recursive binding" $
     (outDir, "TopLevelRec.hs", []) `shouldResultIn` Rejected ["recDef"] panicky
 
-  -- Loaded from the command line instead, which is the path a `ghc-options`
-  -- field takes. `PlainRec` carries no pragma, so if this flag were ignored the
+  -- Loaded from the command line instead, which is the path a @ghc-options@
+  -- field takes. "PlainRec" carries no pragma, so if this flag were ignored the
   -- module would compile and the case would fail.
   it "rejects one whose plugin came from the command line" $
     (outDir, "PlainRec.hs", ["-fplugin", "NoRecursion"])
@@ -94,6 +99,46 @@ spec = describe "the fixtures" do
 
   it "rejects the same binding at -O" $
     (outDir, "TopLevelRec.hs", ["-O"]) `shouldResultIn` Rejected ["recDef"] panicky
+
+  it "rejects an option name it does not know" $
+    (outDir, "Ok.hs", ["-fplugin-opt", "NoRecursion:no-such-option"])
+      `shouldResultIn` Invalid ["unknown plugin option", "no-such-option"]
+
+  it "rejects an option given without its value" $
+    (outDir, "Ok.hs", ["-fplugin-opt", "NoRecursion:ignoredDecls"])
+      `shouldResultIn` Invalid
+        ["was expecting a List but had no value", "ignoredDecls"]
+
+  it "obeys the later flag when it turns allowRecursion off" $
+    ( outDir,
+      "TopLevelRec.hs",
+      [ "-fplugin-opt",
+        "NoRecursion:allowRecursion:true",
+        "-fplugin-opt",
+        "NoRecursion:allowRecursion:false"
+      ]
+    )
+      `shouldResultIn` Rejected ["recDef"] panicky
+
+  it "obeys the later flag when it turns allowRecursion on" $
+    ( outDir,
+      "TopLevelRec.hs",
+      [ "-fplugin-opt",
+        "NoRecursion:allowRecursion:false",
+        "-fplugin-opt",
+        "NoRecursion:allowRecursion:true"
+      ]
+    )
+      `shouldResultIn` Compiles
+
+  -- The fixture has @`allowRecursion:true@ and comes after this flag, so the
+  -- pragma has to win.
+  it "lets a fixture’s own pragma beat an earlier command-line flag" $
+    ( outDir,
+      "OptionPrecedence.hs",
+      ["-fplugin-opt", "NoRecursion:allowRecursion:false"]
+    )
+      `shouldResultIn` Compiles
 
 -- | The test-suite entry point.
 --
@@ -143,14 +188,14 @@ checkFixture ::
   IO ()
 checkFixture outDir name extra expectation = do
   (code, _out, err) <- compileFixture outDir extra name
-  traverse_ expectationFailure $ case (code, expectation) of
-    (ExitSuccess, Compiles) -> Nothing
-    (ExitFailure _, Compiles) ->
+  traverse_ expectationFailure $ case (code, required expectation) of
+    (ExitSuccess, Nothing) -> Nothing
+    (ExitFailure _, Nothing) ->
       Just $ name <> ": should have compiled, but the plugin rejected it:\n" <> err
-    (ExitSuccess, Rejected _ _) ->
+    (ExitSuccess, Just _) ->
       Just $ name <> ": should have been rejected, but it compiled cleanly."
-    (ExitFailure _, Rejected wanted unwanted) ->
-      let missing = filter (not . (`isInfixOf` err)) $ rejectionPrefix : wanted
+    (ExitFailure _, Just (wanted, unwanted)) ->
+      let missing = filter (not . (`isInfixOf` err)) wanted
           spurious = filter (`isInfixOf` err) unwanted
        in if null missing && null spurious
             then Nothing
@@ -169,4 +214,9 @@ checkFixture outDir name extra expectation = do
                   <> "\n"
                   <> err
   where
+    -- Error message pattern matching.
+    required = \case
+      Compiles -> Nothing
+      Rejected wanted unwanted -> pure (rejectionPrefix : wanted, unwanted)
+      Invalid wanted -> pure (wanted, panicky)
     list = intercalate ", " . fmap (\s -> "‘" <> s <> "’")

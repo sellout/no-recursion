@@ -91,6 +91,8 @@ The plugin currently supports four options
 
 - `ignoredDecls`: (list of decl names) ignores the named decls. This is good to put at the top of a module where you have intentionally written a recursive definition.
 
+If a `Bool` option is given more than once, the last one wins, so an `options_ghc` pragma at the top of a module overrides an entry in your Cabal file’s `ghc-options`. `ignoredDecls` and `ignoredMethods` accumulate instead: every occurrence adds to the list, and there is no way to take a name back off it.
+
 ### suggestions
 
 #### `in $csconcat, the following bindings were recursive: go1`
