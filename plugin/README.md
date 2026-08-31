@@ -27,7 +27,7 @@ Now, any recursion in that module will result in a compilation failure.
 The recommended way to re-enable recursion at the module level is to add
 
 ```haskell
-{-# options_ghc -fplugin-opt=NoRecursion:allowRecursion:true #-}
+{-# options_ghc -fplugin-opt=NoRecursion:allowRecursion=true #-}
 ```
 
 at the beginning of the file.
@@ -35,7 +35,7 @@ at the beginning of the file.
 If you want to re-enable it for specific definitions, the best way is to use
 
 ```haskell
-{-# options_ghc -fplugin-opt=NoRecursion:ignoredDecls:recDef #-}
+{-# options_ghc -fplugin-opt=NoRecursion:ignoredDecls=recDef #-}
 
 recDef :: a -> b
 recDef = recDef
@@ -91,6 +91,8 @@ The plugin currently supports four options
 
 - `ignoredDecls`: (list of decl names) ignores the named decls. This is good to put at the top of a module where you have intentionally written a recursive definition.
 
+An option that takes a value is written `-fplugin-opt NoRecursion:‹name›=‹value›` — GHC’s own `NoRecursion:` prefix, then the option name, then `=`, then the value. An option that takes no value is just the name.
+
 If a `Bool` option is given more than once, the last one wins, so an `options_ghc` pragma at the top of a module overrides an entry in your Cabal file’s `ghc-options`. `ignoredDecls` and `ignoredMethods` accumulate instead: every occurrence adds to the list, and there is no way to take a name back off it. An option that isn’t recognised, or that is missing a value, stops the compilation rather than being ignored.
 
 ### suggestions
@@ -102,7 +104,7 @@ This particular message occurs when you define a `Semigroup` instance that didn�
 You can’t apply `ann` to methods, so here are some ways to get around this issue:
 
 1. write an explicit non-recursive definition, or
-2. add `{-# options_ghc -fplugin-opt=NoRecursion:ignoredMethods:sconcat #-}` to the top of the module, which will ignore this method module-wide.
+2. add `{-# options_ghc -fplugin-opt=NoRecursion:ignoredMethods=sconcat #-}` to the top of the module, which will ignore this method module-wide.
 
 Unfortunately, because `sconcat` (and `mconcat`) require lazy lists (`[]`), it’s not possible to write a total definition for these.
 

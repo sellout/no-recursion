@@ -77,14 +77,16 @@ prettyError pluginName optionName =
             <> "’"
         MissingRequiredOption -> "plugin option ‘" <> option <> "’ is required"
 
--- | Splits one option into its name and, if it has one, its value. GHC has
---   already taken the @Plugin:@ prefix off by this point.
+-- | Splits one option into its name and, if it has one, its value, on the
+--   first @=@ — so an option is written @-fplugin-opt Plugin:name=value@. GHC
+--   has already taken the @Plugin:@ prefix off by this point, and a @=@
+--   separator leaves the rest of the option free to contain @:@.
 --
 -- @since 99999
 process :: Plugins.CommandLineOption -> (String, Maybe String)
 process opt =
   maybe (opt, Nothing) (second (pure . drop 1) . flip splitAt opt) $
-    elemIndex ':' opt
+    elemIndex '=' opt
 
 -- | Reads an option that has no meaning without a value, so that every such
 --   option reports a missing one the same way. @typ@ names what was expected.
