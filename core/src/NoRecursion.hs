@@ -36,8 +36,7 @@ import safe "base" Data.String (String)
 import safe "base" Data.Tuple (curry, fst, uncurry)
 import "ghc" GHC.Plugins qualified as Plugins
 import safe "this" PluginUtils
-  ( Annotations,
-    defaultPurePlugin,
+  ( defaultPurePlugin,
     getAnnotations,
     processOptions,
   )
@@ -149,34 +148,34 @@ install opts =
 noRecursionPass :: Opts -> Plugins.ModGuts -> Plugins.CoreM Plugins.ModGuts
 noRecursionPass opts guts = do
   dflags <- Plugins.getDynFlags
-  anns <- getAnnotations guts
+  (modAnns, nameAnns) <- getAnnotations guts
+  let render = Plugins.showSDoc dflags . Plugins.ppr
   either
     ( \recs ->
         Plugins.liftIO . throwIO . ErrorCall $
           "encountered recursion, which has been disabled:\n"
-            <> intercalate "\n" (toList $ formatRecursionRecord dflags <$> recs)
+            <> intercalate "\n" (toList $ formatRecursionRecord render <$> recs)
     )
     (\() -> pure guts)
-    . failOnRecursion dflags opts anns
+    . failOnRecursion
+      render
+      (Plugins.lookupWithDefaultUFM_Directly nameAnns [] . Plugins.getUnique)
+      modAnns
+      opts
     $ Plugins.mg_binds guts
 
 type RecursionRecord :: Type -> Type
 data RecursionRecord b = RecursionRecord [b] (NonEmpty b)
 
-formatRecursionRecord ::
-  (Plugins.Outputable b) => Plugins.DynFlags -> RecursionRecord b -> String
-formatRecursionRecord dflags (RecursionRecord context recs) =
+-- | Renders a record for a human, using @render@ to name each binder.
+formatRecursionRecord :: (b -> String) -> RecursionRecord b -> String
+formatRecursionRecord render (RecursionRecord context recs) =
   maybe
     "at the top level"
-    ( \v ->
-        "in "
-          <> intercalate
-            " >> "
-            (Plugins.showSDoc dflags . Plugins.ppr <$> toList v)
-    )
+    (\v -> "in " <> intercalate " >> " (render <$> toList v))
     (nonEmpty context)
     <> ", the following bindings were recursive: "
-    <> intercalate ", " (Plugins.showSDoc dflags . Plugins.ppr <$> toList recs)
+    <> intercalate ", " (render <$> toList recs)
 
 recursionAnnotation :: String
 recursionAnnotation = "Recursion"
@@ -189,24 +188,27 @@ moduleAllowsRecursion allowRecursion modAnns =
   (allowRecursion || elem recursionAnnotation modAnns)
     && notElem noRecursionAnnotation modAnns
 
-getName :: Plugins.DynFlags -> Plugins.CoreBndr -> String
-getName dflags = Plugins.showSDoc dflags . Plugins.ppr
+-- | Whether a rendered binder name is one the desugarer invented for a class
+--   method or a dictionary.
+isInternalName :: String -> Bool
+isInternalName v = "$c" `isPrefixOf` v || "$f" `isPrefixOf` v
 
-isInternalName :: Plugins.DynFlags -> Plugins.CoreBndr -> Bool
-isInternalName dflags var =
-  let v = getName dflags var
-   in "$c" `isPrefixOf` v || "$f" `isPrefixOf` v
-
+-- | The whole analysis, over any binder type.
 failOnRecursion ::
-  Plugins.DynFlags ->
+  -- | A function that returns the name of a binder
+  (b -> String) ->
+  -- | A function that returns the annotations on a binder
+  (b -> [String]) ->
+  -- | The annotations on the module
+  [String] ->
   Opts ->
-  Annotations [String] ->
-  [Plugins.CoreBind] ->
-  Either (NonEmpty (RecursionRecord Plugins.CoreBndr)) ()
+  [Plugins.Bind b] ->
+  Either (NonEmpty (RecursionRecord b)) ()
 failOnRecursion
-  dflags
+  render
+  annsOf
+  modAnns
   opts
-  (modAnns, nameAnns)
   original =
     traverse_ Left
       . nonEmpty
@@ -217,16 +219,16 @@ failOnRecursion
       . filter
         ( not
             . \(RecursionRecord context recs) ->
-              ignoreMethodCycles opts && null context && all (isInternalName dflags) recs
-                || any (flip elem (ignoredDecls opts) . getName dflags) recs
-                || any (flip elem (("$c" <>) <$> ignoredMethods opts) . getName dflags) context
+              ignoreMethodCycles opts && null context && all (isInternalName . render) recs
+                || any (flip elem (ignoredDecls opts) . render) recs
+                || any (flip elem (("$c" <>) <$> ignoredMethods opts) . render) context
         )
       $ recursiveCallsForBind
         =<< filter
           ( not
               . allowBind
                 (moduleAllowsRecursion (allowRecursion opts) modAnns)
-                nameAnns
+                annsOf
           )
           original
 
@@ -234,15 +236,14 @@ addBindingReference :: b -> [RecursionRecord b] -> [RecursionRecord b]
 addBindingReference var =
   fmap (\(RecursionRecord context recs) -> RecursionRecord (var : context) recs)
 
-allowBind :: Bool -> Plugins.NameEnv [String] -> Plugins.CoreBind -> Bool
-allowBind modAllowsRecursion anns = \case
+allowBind :: Bool -> (b -> [String]) -> Plugins.Bind b -> Bool
+allowBind modAllowsRecursion annsOf = \case
   Plugins.NonRec {} -> True
-  Plugins.Rec bs -> all (recursionAllowed modAllowsRecursion anns . fst) bs
+  Plugins.Rec bs -> all (recursionAllowed modAllowsRecursion annsOf . fst) bs
 
-recursionAllowed :: Bool -> Plugins.NameEnv [String] -> Plugins.Var -> Bool
-recursionAllowed modAllowsRecursion anns var =
-  let strAnns =
-        Plugins.lookupWithDefaultUFM_Directly anns [] $ Plugins.getUnique var
+recursionAllowed :: Bool -> (b -> [String]) -> b -> Bool
+recursionAllowed modAllowsRecursion annsOf var =
+  let strAnns = annsOf var
    in (modAllowsRecursion || elem recursionAnnotation strAnns)
         && notElem noRecursionAnnotation strAnns
 
