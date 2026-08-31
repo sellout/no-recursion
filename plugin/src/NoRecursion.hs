@@ -10,7 +10,6 @@ module NoRecursion (plugin) where
 
 import safe "base" Control.Applicative (liftA2, pure)
 import safe "base" Control.Category ((.))
-import safe "base" Control.Exception (ErrorCall (ErrorCall), throwIO)
 import safe "base" Data.Bool (Bool (True))
 import safe "base" Data.Either (either)
 import safe "base" Data.Foldable (foldrM, toList)
@@ -91,7 +90,7 @@ noRecursionPass opts guts = do
   let render = Plugins.showSDoc dflags . Plugins.ppr
   either
     ( \recs ->
-        Plugins.liftIO . throwIO . ErrorCall $
+        Plugins.liftIO . Plugins.throwGhcExceptionIO . Plugins.ProgramError $
           "encountered recursion, which has been disabled:\n"
             <> intercalate "\n" (toList $ formatRecursionRecord render <$> recs)
     )
