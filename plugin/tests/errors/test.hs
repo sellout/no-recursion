@@ -140,6 +140,30 @@ spec = describe "the fixtures" do
     )
       `shouldResultIn` Compiles
 
+  -- The same two orderings, written the way a flag with a value is written
+  -- everywhere else: `name=value`.
+  it "reads a value written with =, turning allowRecursion off" $
+    ( outDir,
+      "TopLevelRec.hs",
+      [ "-fplugin-opt",
+        "NoRecursion:allowRecursion=true",
+        "-fplugin-opt",
+        "NoRecursion:allowRecursion=false"
+      ]
+    )
+      `shouldResultIn` Rejected ["recDef"] panicky
+
+  it "reads a value written with =, turning allowRecursion on" $
+    ( outDir,
+      "TopLevelRec.hs",
+      [ "-fplugin-opt",
+        "NoRecursion:allowRecursion=false",
+        "-fplugin-opt",
+        "NoRecursion:allowRecursion=true"
+      ]
+    )
+      `shouldResultIn` Compiles
+
 -- | The test-suite entry point.
 --
 -- @since 0.5.0
