@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog 1.1](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to the [Haskell Package Versioning Policy](https://pvp.haskell.org/).
 
+## [Unreleased]
+
+### Changed
+
+- The analysis moved into a separate package, `recursion-analysis`, which this
+  package now depends on. Using the plugin is unchanged — same module name, same
+  options, same messages. What changes is that the code deciding what counts as
+  recursion can now be linked into a test-suite and called directly, instead of
+  being reachable only by compiling a module and reading what GHC printed.
+
+  Adding a dependency is a breaking change under the policy in the README, so
+  this lands in the next `B` release.
+
 ## [0.4.0.1] - 2026-07-12
 
 ### Added
