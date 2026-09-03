@@ -58,7 +58,7 @@
           '';
       };
     in
-      perPackageFiles "core";
+      perPackageFiles "plugin";
   };
 
   imports = [./hlint.nix];
@@ -108,7 +108,7 @@
   services.haskell-ci = {
     inherit (self.lib) defaultGhcVersion;
     ghcVersions = self.lib.nonNixTestedGhcVersions;
-    cabalPackages = {"${config.project.name}" = "core";};
+    cabalPackages = {"${config.project.name}" = "plugin";};
     ## TODO: Figure out why these builds fail.
     exclude =
       (map (ghc: {

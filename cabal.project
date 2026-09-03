@@ -22,4 +22,4 @@ program-options
 tests: True
 
 packages:
-  ./core/no-recursion.cabal
+  ./plugin/no-recursion.cabal

@@ -41,12 +41,12 @@ bug-reports: https://github.com/sellout/no-recursion/issues
 source-repository head
   type: git
   location: https://github.com/sellout/no-recursion.git
-  subdir: core
+  subdir: plugin
 
 source-repository this
   type: git
   location: https://github.com/sellout/no-recursion.git
-  subdir: core
+  subdir: plugin
   -- NB: This is the repo version, which is distinct from the package version.
   tag: v0.4.1
 
