@@ -18,14 +18,19 @@ module GHC.Recursion
 where
 
 import safe "base" Control.Category ((.))
-import safe "base" Data.Foldable (foldMap)
+import safe "base" Data.Eq (Eq)
+import safe "base" Data.Foldable (Foldable, foldMap)
 import safe "base" Data.Function (($))
-import safe "base" Data.Functor (fmap, (<$>))
+import safe "base" Data.Functor (Functor, fmap, (<$>))
 import safe "base" Data.Kind (Type)
 import safe "base" Data.List.NonEmpty (NonEmpty, nonEmpty)
 import safe "base" Data.Maybe (maybe)
+import safe "base" Data.Ord (Ord)
 import safe "base" Data.Semigroup ((<>))
+import safe "base" Data.Traversable (Traversable)
 import safe "base" Data.Tuple (fst, uncurry)
+import safe "base" Text.Read (Read)
+import safe "base" Text.Show (Show)
 import "ghc" GHC.Core qualified as Core
 
 -- | One place recursion was found.
@@ -42,6 +47,8 @@ data Record b = Record
     -- @since 99999
     occurrences :: NonEmpty b
   }
+  deriving stock (Eq, Ord, Read, Show)
+  deriving stock (Foldable, Functor, Traversable)
 
 addBindingReference :: b -> [Record b] -> [Record b]
 addBindingReference var =

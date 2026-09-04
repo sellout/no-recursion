@@ -163,6 +163,20 @@ library
   exposed-modules:
     GHC.Recursion
 
+test-suite unit
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    tests/unit
+  main-is: test.hs
+  other-modules:
+    GHC.Recursion.Test.Quote
+  build-depends:
+    ghc ^>= {9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1, 9.12.1, 9.14.1},
+    hspec ^>= {2.7.1, 2.9.3, 2.11.0},
+    recursion-analysis,
+    template-haskell ^>= {2.18.0, 2.19.0, 2.20.0, 2.21.0, 2.22.0, 2.23.0, 2.24.0},
+
 test-suite doctests
   import: defaults
   type: exitcode-stdio-1.0

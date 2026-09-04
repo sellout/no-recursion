@@ -165,8 +165,21 @@ library
     recursion-analysis ^>= {0.0.0},
   exposed-modules:
     NoRecursion
+    NoRecursion.Internal
   other-modules:
     PluginUtils
+
+test-suite unit
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    tests/unit
+  main-is: test.hs
+  build-depends:
+    ghc ^>= {9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1, 9.12.1, 9.14.1},
+    hspec ^>= {2.7.1, 2.9.3, 2.11.0},
+    no-recursion,
+    recursion-analysis ^>= {0.0.0},
 
 test-suite doctests
   import: defaults
