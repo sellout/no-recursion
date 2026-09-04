@@ -18,7 +18,6 @@ import safe "base" Data.Foldable
   ( all,
     any,
     elem,
-    foldMap,
     foldr,
     foldrM,
     notElem,
@@ -33,8 +32,12 @@ import safe "base" Data.List.NonEmpty (NonEmpty, nonEmpty)
 import safe "base" Data.Maybe (maybe)
 import safe "base" Data.Semigroup (Semigroup ((<>)), (<>))
 import safe "base" Data.String (String)
-import safe "base" Data.Tuple (curry, fst, uncurry)
+import safe "base" Data.Tuple (curry, fst)
 import "ghc" GHC.Plugins qualified as Plugins
+import safe "recursion-analysis" GHC.Recursion
+  ( RecursionRecord (RecursionRecord),
+    recursiveCallsForBind,
+  )
 import safe "this" PluginUtils
   ( defaultPurePlugin,
     getAnnotations,
@@ -164,9 +167,6 @@ noRecursionPass opts guts = do
       opts
     $ Plugins.mg_binds guts
 
-type RecursionRecord :: Type -> Type
-data RecursionRecord b = RecursionRecord [b] (NonEmpty b)
-
 -- | Renders a record for a human, using @render@ to name each binder.
 formatRecursionRecord :: (b -> String) -> RecursionRecord b -> String
 formatRecursionRecord render (RecursionRecord context recs) =
@@ -232,10 +232,6 @@ failOnRecursion
           )
           original
 
-addBindingReference :: b -> [RecursionRecord b] -> [RecursionRecord b]
-addBindingReference var =
-  fmap (\(RecursionRecord context recs) -> RecursionRecord (var : context) recs)
-
 allowBind :: Bool -> (b -> [String]) -> Plugins.Bind b -> Bool
 allowBind modAllowsRecursion annsOf = \case
   Plugins.NonRec {} -> True
@@ -246,33 +242,3 @@ recursionAllowed modAllowsRecursion annsOf var =
   let strAnns = annsOf var
    in (modAllowsRecursion || elem recursionAnnotation strAnns)
         && notElem noRecursionAnnotation strAnns
-
-recursiveCallsForBind :: Plugins.Bind b -> [RecursionRecord b]
-recursiveCallsForBind =
-  let collectCalls v = addBindingReference v . collectRecursiveCalls
-   in \case
-        Plugins.NonRec v rhs -> collectCalls v rhs
-        Plugins.Rec binds ->
-          let nestedRecursion = foldMap (uncurry collectCalls) binds
-           in maybe
-                nestedRecursion
-                (\bnds -> RecursionRecord [] (fst <$> bnds) : nestedRecursion)
-                $ nonEmpty binds
-
--- | This collects all identifiable recursion points in an expression.
-collectRecursiveCalls :: Plugins.Expr b -> [RecursionRecord b]
-collectRecursiveCalls = \case
-  Plugins.App f a -> collectRecursiveCalls f <> collectRecursiveCalls a
-  Plugins.Case scrut _ _ alts ->
-    collectRecursiveCalls scrut <> foldMap recursiveCallsForAlt alts
-  Plugins.Cast e _ -> collectRecursiveCalls e
-  Plugins.Coercion _ -> []
-  Plugins.Lam _ body -> collectRecursiveCalls body
-  Plugins.Let bind e -> recursiveCallsForBind bind <> collectRecursiveCalls e
-  Plugins.Lit _ -> []
-  Plugins.Tick _ body -> collectRecursiveCalls body
-  Plugins.Type _ -> []
-  Plugins.Var _ -> []
-
-recursiveCallsForAlt :: Plugins.Alt b -> [RecursionRecord b]
-recursiveCallsForAlt (Plugins.Alt _ _ rhs) = collectRecursiveCalls rhs

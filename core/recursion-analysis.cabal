@@ -2,13 +2,11 @@ cabal-version: 3.0
 -- ^ Cabal 3.0 is the first with the `Universal-FOSS-exception-1.0` SPDX license
 --   exception.
 
-name: no-recursion
-version: 0.4.0.1
-synopsis: A GHC plugin to remove support for recursion
+name: recursion-analysis
+version: 0.0.0.0
+synopsis: Finding recursion in GHC Core
 description:
-  General recursion can be the cause of a lot of problems. This removes
-  recursion from GHC, allowing you to guarantee you’re using other mechanisms,
-  like recursion schemes.
+  A small library for analyzing recursion in GHC.
 maintainer: Greg Pfeil <greg@technomadic.org>
 author: Greg Pfeil <greg@technomadic.org>
 copyright: 2024 Greg Pfeil
@@ -41,12 +39,12 @@ bug-reports: https://github.com/sellout/no-recursion/issues
 source-repository head
   type: git
   location: https://github.com/sellout/no-recursion.git
-  subdir: plugin
+  subdir: core
 
 source-repository this
   type: git
   location: https://github.com/sellout/no-recursion.git
-  subdir: plugin
+  subdir: core
   -- NB: This is the repo version, which is distinct from the package version.
   tag: v0.4.1
 
@@ -162,11 +160,8 @@ library
     src
   build-depends:
     ghc ^>= {9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1, 9.12.1, 9.14.1},
-    recursion-analysis ^>= {0.0.0},
   exposed-modules:
-    NoRecursion
-  other-modules:
-    PluginUtils
+    GHC.Recursion
 
 test-suite doctests
   import: defaults
@@ -176,7 +171,7 @@ test-suite doctests
   main-is: doctests.hs
   build-depends:
     doctest ^>= {0.18.2, 0.20.1, 0.21.1, 0.22.2, 0.24.0, 0.25.0},
-    no-recursion,
+    recursion-analysis,
   -- TODO: The sections below here are necessary because we don’t have control
   --       over the generated `Build_doctests.hs` file. So we have to silence
   --       all of its warnings one way or another.
@@ -195,32 +190,3 @@ test-suite doctests
     -- “Build_doctests.hs”, we set it here, and that means it has to match
     -- doctests.hs, which is `Unsafe`.
     Unsafe
-
-test-suite annotations
-  import: defaults
-  type: exitcode-stdio-1.0
-  build-depends:
-    no-recursion,
-  ghc-options:
-    -fplugin NoRecursion
-  hs-source-dirs: tests/ignore
-  main-is: test.hs
-  other-modules:
-    Test.AllowRecursion
-    Test.AnnModule
-    Test.AnnName
-    Test.IgnoreDefaultImpls
-    Test.UnannName
-
-test-suite no-ignore-annotations
-  import: defaults
-  type: exitcode-stdio-1.0
-  build-depends:
-    no-recursion,
-  ghc-options:
-    -fplugin NoRecursion
-    -fplugin-opt NoRecursion:ignore-method-cycles:false
-  hs-source-dirs: tests/no-ignore
-  main-is: test.hs
-  other-modules:
-    Test.IgnoreDefaultImpls

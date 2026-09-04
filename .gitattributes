@@ -15,6 +15,11 @@
 /.gitignore linguist-generated
 /.hlint.yaml linguist-generated
 /.vale.ini linguist-generated
+/core/LICENSE linguist-generated
+/core/LICENSE.AGPL-3.0-only linguist-generated
+/core/LICENSE.Universal-FOSS-exception-1.0 linguist-generated
+/core/LICENSE.proprietary linguist-generated
+/core/henforcer.toml linguist-generated
 /nix-ci.nix linguist-generated
 /plugin/LICENSE linguist-generated
 /plugin/LICENSE.AGPL-3.0-only linguist-generated
