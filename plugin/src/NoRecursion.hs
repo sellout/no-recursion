@@ -35,8 +35,8 @@ import safe "base" Data.String (String)
 import safe "base" Data.Tuple (curry, fst)
 import "ghc" GHC.Plugins qualified as Plugins
 import safe "recursion-analysis" GHC.Recursion
-  ( RecursionRecord (RecursionRecord),
-    recursiveCallsForBind,
+  ( Record (Record),
+    inBind,
   )
 import safe "this" PluginUtils
   ( defaultPurePlugin,
@@ -168,8 +168,8 @@ noRecursionPass opts guts = do
     $ Plugins.mg_binds guts
 
 -- | Renders a record for a human, using @render@ to name each binder.
-formatRecursionRecord :: (b -> String) -> RecursionRecord b -> String
-formatRecursionRecord render (RecursionRecord context recs) =
+formatRecursionRecord :: (b -> String) -> Record b -> String
+formatRecursionRecord render (Record context recs) =
   maybe
     "at the top level"
     (\v -> "in " <> intercalate " >> " (render <$> toList v))
@@ -203,7 +203,7 @@ failOnRecursion ::
   [String] ->
   Opts ->
   [Plugins.Bind b] ->
-  Either (NonEmpty (RecursionRecord b)) ()
+  Either (NonEmpty (Record b)) ()
 failOnRecursion
   render
   annsOf
@@ -218,12 +218,12 @@ failOnRecursion
       --           through.
       . filter
         ( not
-            . \(RecursionRecord context recs) ->
+            . \(Record context recs) ->
               ignoreMethodCycles opts && null context && all (isInternalName . render) recs
                 || any (flip elem (ignoredDecls opts) . render) recs
                 || any (flip elem (("$c" <>) <$> ignoredMethods opts) . render) context
         )
-      $ recursiveCallsForBind
+      $ inBind
         =<< filter
           ( not
               . allowBind

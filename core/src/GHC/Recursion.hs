@@ -8,10 +8,12 @@
 -- recursion off `Core.Rec` binding groups, so it needs nothing from a compiler
 -- session — deciding what to do about what it finds is somebody else’s job.
 module GHC.Recursion
-  ( RecursionRecord (RecursionRecord),
-    collectRecursiveCalls,
-    recursiveCallsForAlt,
-    recursiveCallsForBind,
+  ( Record (Record),
+    context,
+    inAlt,
+    inBind,
+    inExpr,
+    occurrences,
   )
 where
 
@@ -26,51 +28,59 @@ import safe "base" Data.Semigroup ((<>))
 import safe "base" Data.Tuple (fst, uncurry)
 import "ghc" GHC.Core qualified as Core
 
--- | One place recursion was found: the enclosing binders, outermost last, and
---   the binders of the recursive group itself.
+-- | One place recursion was found.
 --
 -- @since 99999
-type RecursionRecord :: Type -> Type
-data RecursionRecord b = RecursionRecord [b] (NonEmpty b)
+type Record :: Type -> Type
+data Record b = Record
+  { -- | The enclosing binders, outermost last.
+    --
+    -- @since 99999
+    context :: [b],
+    -- | The binders of the recursive group itself.
+    --
+    -- @since 99999
+    occurrences :: NonEmpty b
+  }
 
-addBindingReference :: b -> [RecursionRecord b] -> [RecursionRecord b]
+addBindingReference :: b -> [Record b] -> [Record b]
 addBindingReference var =
-  fmap (\(RecursionRecord context recs) -> RecursionRecord (var : context) recs)
+  fmap (\(Record context recs) -> Record (var : context) recs)
 
 -- | Collects the recursion in a binding, and in everything under it.
 --
 -- @since 99999
-recursiveCallsForBind :: Core.Bind b -> [RecursionRecord b]
-recursiveCallsForBind =
-  let collectCalls v = addBindingReference v . collectRecursiveCalls
+inBind :: Core.Bind b -> [Record b]
+inBind =
+  let recInExpr v = addBindingReference v . inExpr
    in \case
-        Core.NonRec v rhs -> collectCalls v rhs
+        Core.NonRec v rhs -> recInExpr v rhs
         Core.Rec binds ->
-          let nestedRecursion = foldMap (uncurry collectCalls) binds
+          let nestedRecursion = foldMap (uncurry recInExpr) binds
            in maybe
                 nestedRecursion
-                (\bnds -> RecursionRecord [] (fst <$> bnds) : nestedRecursion)
+                (\bnds -> Record [] (fst <$> bnds) : nestedRecursion)
                 $ nonEmpty binds
 
 -- | This collects all identifiable recursion points in an expression.
 --
 -- @since 99999
-collectRecursiveCalls :: Core.Expr b -> [RecursionRecord b]
-collectRecursiveCalls = \case
-  Core.App f a -> collectRecursiveCalls f <> collectRecursiveCalls a
+inExpr :: Core.Expr b -> [Record b]
+inExpr = \case
+  Core.App f a -> inExpr f <> inExpr a
   Core.Case scrut _ _ alts ->
-    collectRecursiveCalls scrut <> foldMap recursiveCallsForAlt alts
-  Core.Cast e _ -> collectRecursiveCalls e
+    inExpr scrut <> foldMap inAlt alts
+  Core.Cast e _ -> inExpr e
   Core.Coercion _ -> []
-  Core.Lam _ body -> collectRecursiveCalls body
-  Core.Let bind e -> recursiveCallsForBind bind <> collectRecursiveCalls e
+  Core.Lam _ body -> inExpr body
+  Core.Let bind e -> inBind bind <> inExpr e
   Core.Lit _ -> []
-  Core.Tick _ body -> collectRecursiveCalls body
+  Core.Tick _ body -> inExpr body
   Core.Type _ -> []
   Core.Var _ -> []
 
 -- | Collects the recursion in one alternative of a @case@.
 --
 -- @since 99999
-recursiveCallsForAlt :: Core.Alt b -> [RecursionRecord b]
-recursiveCallsForAlt (Core.Alt _ _ rhs) = collectRecursiveCalls rhs
+inAlt :: Core.Alt b -> [Record b]
+inAlt (Core.Alt _ _ rhs) = inExpr rhs
