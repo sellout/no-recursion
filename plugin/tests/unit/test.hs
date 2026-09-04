@@ -67,7 +67,7 @@ spec =
       analyzed defaultOpts [] [] [recursiveUnder "f" "go"]
         `shouldBe` [Record ["f"] ("go" :| [])]
 
-    it "lets a top-level rec group through with allow-recursion" $
+    it "lets a top-level rec group through with allowRecursion" $
       analyzed
         defaultOpts {allowRecursion = True}
         []
@@ -75,7 +75,7 @@ spec =
         [Plugins.Rec [("f", leaf)]]
         `shouldBe` []
 
-    it "prefers a NoRecursion annotation on a binder to allow-recursion" $
+    it "prefers a NoRecursion annotation on a binder to allowRecursion" $
       analyzed
         defaultOpts {allowRecursion = True}
         []
@@ -95,7 +95,7 @@ spec =
         [Plugins.Rec [("f", leaf)]]
         `shouldBe` [Record [] ("f" :| [])]
 
-    it "drops a group named by ignore-decls" $
+    it "drops a group named by ignoredDecls" $
       analyzed
         defaultOpts {ignoredDecls = ["f"]}
         []
@@ -103,10 +103,10 @@ spec =
         [Plugins.Rec [("f", leaf)]]
         `shouldBe` []
 
-    it "drops a top-level group of desugarer names with ignore-method-cycles" $
+    it "drops a top-level group of desugarer names with ignoreMethodCycles" $
       analyzed defaultOpts [] [] [Plugins.Rec [("$cfoo", leaf)]] `shouldBe` []
 
-    it "reports that same group without ignore-method-cycles" $
+    it "reports that same group without ignoreMethodCycles" $
       analyzed
         defaultOpts {ignoreMethodCycles = False}
         []
@@ -114,7 +114,7 @@ spec =
         [Plugins.Rec [("$cfoo", leaf)]]
         `shouldBe` [Record [] ("$cfoo" :| [])]
 
-    it "drops what is nested under a method named by ignore-methods" $
+    it "drops what is nested under a method named by ignoredMethods" $
       analyzed
         defaultOpts {ignoreMethodCycles = False, ignoredMethods = ["foo"]}
         []

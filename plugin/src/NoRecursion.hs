@@ -6,7 +6,7 @@
 --
 -- A plugin that identifies and reports on uses of recursion. The name evokes a
 -- language pragma – implying a @Recursion@ pragma that is enabled by default.
-module NoRecursion (plugin) where
+module NoRecursion (Opts, defaultOpts, plugin) where
 
 import safe "base" Control.Applicative (liftA2, pure)
 import safe "base" Control.Category ((.))
@@ -45,14 +45,14 @@ parseOpts =
                 . Plugins.errorMsg
                 . Opts.prettyError "NoRecursion" name
          in either err pure case name of
-              "allow-recursion" ->
+              "allowRecursion" ->
                 (\v -> opts {allowRecursion = v}) <$> Opts.parseBool mvalue
-              "ignore-method-cycles" ->
+              "ignoreMethodCycles" ->
                 (\v -> opts {ignoreMethodCycles = v}) <$> Opts.parseBool mvalue
-              "ignore-decls" ->
+              "ignoredDecls" ->
                 (\v -> opts {ignoredDecls = v <> ignoredDecls opts})
                   <$> Opts.parseRequiringVal (pure . Opts.parseList) "List" mvalue
-              "ignore-methods" ->
+              "ignoredMethods" ->
                 (\v -> opts {ignoredMethods = v <> ignoredMethods opts})
                   <$> Opts.parseRequiringVal (pure . Opts.parseList) "List" mvalue
               _ -> Left Opts.UnknownOption

@@ -27,7 +27,7 @@ Now, any recursion in that module will result in a compilation failure.
 The recommended way to re-enable recursion at the module level is to add
 
 ```haskell
-{-# options_ghc -fplugin-opt=NoRecursion:allow-recursion:true #-}
+{-# options_ghc -fplugin-opt=NoRecursion:allowRecursion:true #-}
 ```
 
 at the beginning of the file.
@@ -35,7 +35,7 @@ at the beginning of the file.
 If you want to re-enable it for specific definitions, the best way is to use
 
 ```haskell
-{-# options_ghc -fplugin-opt=NoRecursion:ignore-decls:recDef #-}
+{-# options_ghc -fplugin-opt=NoRecursion:ignoredDecls:recDef #-}
 
 recDef :: a -> b
 recDef = recDef
@@ -83,13 +83,13 @@ If both '"Recursion"' and `"NoRecursion"` annotations exist on the same name (or
 
 The plugin currently supports four options
 
-- `allow-recursion`: (`true`|`false`) whether to allow recursion by default. As mentioned above, this is the best way to re-enable recursion for a single module, but you can do the reverse and specify `allow-recursion:true` globally, then use `allow-recursion:false` per-module.
+- `allowRecursion`: (`true`|`false`) whether to allow recursion by default. As mentioned above, this is the best way to re-enable recursion for a single module, but you can do the reverse and specify `allowRecursion:true` globally, then use `allowRecursion:false` per-module.
 
-- `ignore-method-cycles`: (`true`|`false`) whether to ignore cycles between method definitions.the method level. This crops up a lot with errors about things like `$csconcat`.
+- `ignoreMethodCycles`: (`true`|`false`) whether to ignore cycles between method definitions.the method level. This crops up a lot with errors about things like `$csconcat`.
 
-- `ignore-methods`: (list of method names) ignores the named methods. Very useful for silencing errors about default method definitions.
+- `ignoredMethods`: (list of method names) ignores the named methods. Very useful for silencing errors about default method definitions.
 
-- `ignore-decls`: (list of decl names) ignores the named decls. This is good to put at the top of a module where you have intentionally written a recursive definition.
+- `ignoredDecls`: (list of decl names) ignores the named decls. This is good to put at the top of a module where you have intentionally written a recursive definition.
 
 ### suggestions
 
@@ -100,7 +100,7 @@ This particular message occurs when you define a `Semigroup` instance that didn�
 You can’t apply `ann` to methods, so here are some ways to get around this issue:
 
 1. write an explicit non-recursive definition, or
-2. add `{-# options_ghc -fplugin-opt=NoRecursion:ignore-methods:sconcat #-}` to the top of the module, which will ignore this method module-wide.
+2. add `{-# options_ghc -fplugin-opt=NoRecursion:ignoredMethods:sconcat #-}` to the top of the module, which will ignore this method module-wide.
 
 Unfortunately, because `sconcat` (and `mconcat`) require lazy lists (`[]`), it’s not possible to write a total definition for these.
 

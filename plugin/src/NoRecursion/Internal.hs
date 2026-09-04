@@ -38,6 +38,7 @@ import safe "base" Data.Maybe (maybe)
 import safe "base" Data.Semigroup ((<>))
 import safe "base" Data.String (String)
 import safe "base" Data.Tuple (fst)
+import safe "base" Text.Show (Show)
 import "ghc" GHC.Plugins qualified as Plugins
 import safe "recursion-analysis" GHC.Recursion (Record (Record), inBind)
 
@@ -51,11 +52,18 @@ data Opts = Opts
     ignoredDecls :: [String],
     ignoredMethods :: [String]
   }
+  deriving stock (Show)
 
--- | The `Opts` we have if no @-fplugin-opts=NoRecursion:@ are provided.
+-- | The `Opts` we have if no @-fplugin-opt NoRecursion:@ are provided.
 --
--- - recursion is not allowed
--- - recursion cycles between methods is ignored (to avoid a breaking change)
+-- >>> defaultOpts
+-- Opts {allowRecursion = False, ignoreMethodCycles = True, ignoredDecls = [], ignoredMethods = []}
+--
+--   `ignoredDecls` and `ignoredMethods` accumulate if they are given more than
+--   once.
+--
+--   __NOTE__: `ignoreMethodCycles` will default to `False` in a future major
+--             release. If you want it to remain `True`, set it explicitly.
 --
 -- @since 99999
 defaultOpts :: Opts
