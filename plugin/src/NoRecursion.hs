@@ -10,30 +10,21 @@ module NoRecursion (plugin) where
 
 import safe "base" Control.Applicative (liftA2, pure)
 import safe "base" Control.Category ((.))
-import safe "base" Data.Bool (Bool (True))
-import safe "base" Data.Either (either)
+import safe "base" Data.Either (Either (Left), either)
 import safe "base" Data.Foldable (foldrM, toList)
 import safe "base" Data.Function (($))
 import safe "base" Data.Functor (fmap, (<$>))
-import safe "base" Data.List (intercalate)
-import safe "base" Data.Maybe (maybe)
+import safe "base" Data.List (intercalate, reverse)
 import safe "base" Data.Semigroup ((<>))
 import "ghc" GHC.Plugins qualified as Plugins
 import "this" NoRecursion.Internal
-  ( OptError (MissingValue, UnknownOption),
-    Opts (allowRecursion, ignoreMethodCycles, ignoredDecls, ignoredMethods),
+  ( Opts (allowRecursion, ignoreMethodCycles, ignoredDecls, ignoredMethods),
     defaultOpts,
     failOnRecursion,
     formatRecursionRecord,
-    parseBoolOpt,
-    parseListOpt,
-    prettyOptError,
   )
-import safe "this" PluginUtils
-  ( defaultPurePlugin,
-    getAnnotations,
-    processOptions,
-  )
+import safe "this" PluginUtils (defaultPurePlugin, getAnnotations)
+import safe "this" PluginUtils.Options qualified as Opts
 
 -- | The entrypoint for the "NoRecursion" plugin.
 --
@@ -47,37 +38,30 @@ plugin =
 parseOpts :: [Plugins.CommandLineOption] -> Plugins.CoreM Opts
 parseOpts =
   foldrM
-    ( \(name, mvalue) opts ->
-        case name of
-          "allow-recursion" ->
-            either (err opts) (\v -> pure opts {allowRecursion = v}) $
-              maybe (pure True) parseBoolOpt mvalue
-          "ignore-method-cycles" ->
-            either (err opts) (\v -> pure opts {ignoreMethodCycles = v}) $
-              maybe (pure True) parseBoolOpt mvalue
-          "ignore-decls" ->
-            maybe
-              (err opts $ MissingValue name)
-              ( \v ->
-                  pure opts {ignoredDecls = parseListOpt v <> ignoredDecls opts}
-              )
-              mvalue
-          "ignore-methods" ->
-            maybe
-              (err opts $ MissingValue name)
-              ( \v ->
-                  pure
-                    opts
-                      { ignoredMethods = parseListOpt v <> ignoredMethods opts
-                      }
-              )
-              mvalue
-          _ -> err opts $ UnknownOption name
+    ( \opt opts ->
+        let (name, mvalue) = Opts.process opt
+            err =
+              fmap (\() -> opts)
+                . Plugins.errorMsg
+                . Opts.prettyError "NoRecursion" name
+         in either err pure case name of
+              "allow-recursion" ->
+                (\v -> opts {allowRecursion = v}) <$> Opts.parseBool mvalue
+              "ignore-method-cycles" ->
+                (\v -> opts {ignoreMethodCycles = v}) <$> Opts.parseBool mvalue
+              "ignore-decls" ->
+                (\v -> opts {ignoredDecls = v <> ignoredDecls opts})
+                  <$> Opts.parseRequiringVal (pure . Opts.parseList) "List" mvalue
+              "ignore-methods" ->
+                (\v -> opts {ignoredMethods = v <> ignoredMethods opts})
+                  <$> Opts.parseRequiringVal (pure . Opts.parseList) "List" mvalue
+              _ -> Left Opts.UnknownOption
     )
     defaultOpts
-    . processOptions
-  where
-    err opts = fmap (\() -> opts) . Plugins.errorMsg . prettyOptError
+    -- NOTE: Starting with GHC 8.6, plugin option order is reversed from what is
+    --       given on the command line. This restores it, so that the last option
+    --       wins.
+    . reverse
 
 install :: Opts -> [Plugins.CoreToDo] -> [Plugins.CoreToDo]
 install opts =

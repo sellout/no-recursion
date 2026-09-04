@@ -173,6 +173,7 @@ library
     NoRecursion.Internal
   other-modules:
     PluginUtils
+    PluginUtils.Options
 
 test-suite unit
   import: defaults
