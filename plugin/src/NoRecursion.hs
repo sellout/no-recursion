@@ -91,7 +91,7 @@ parseOptions options = do
 
 install :: Opts -> [Plugins.CoreToDo] -> [Plugins.CoreToDo]
 install opts =
-  (Plugins.CoreDoPluginPass "add NoRecursion rule" (noRecursionPass opts) :)
+  (Plugins.CoreDoPluginPass "NoRecursion" (noRecursionPass opts) :)
 
 noRecursionPass :: Opts -> Plugins.ModGuts -> Plugins.CoreM Plugins.ModGuts
 noRecursionPass opts guts = do
