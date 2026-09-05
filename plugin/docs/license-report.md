@@ -4,14 +4,15 @@
 
 Bold-faced **`package-name`**s denote standard libraries bundled with `ghc-9.10.1`.
 
-## Direct dependencies of `recursion-analysis:lib:recursion-analysis`
+## Direct dependencies of `no-recursion:lib:no-recursion`
 
 | Name | Version | [SPDX](https://spdx.org/licenses/) License Id | Description | Also depended upon by |
 | --- | --- | --- | --- | --- |
 | **`base`** | [`4.20.0.0`](http://hackage.haskell.org/package/base-4.20.0.0) | [`BSD-3-Clause`](http://hackage.haskell.org/package/base-4.20.0.0/src/LICENSE) | Core data structures and operations | *(core library)* |
-| **`ghc`** | [`9.10.1`](http://hackage.haskell.org/package/ghc-9.10.1) | [`BSD-3-Clause`](http://hackage.haskell.org/package/ghc-9.10.1/src/LICENSE) | The GHC API | `ghc-compat-plugin`, `henforcer`, `pollock` |
-| `ghc-compat-plugin` | [`0.1.0.1`](http://hackage.haskell.org/package/ghc-compat-plugin-0.1.0.1) | [`AGPL-3.0-only`](http://hackage.haskell.org/package/ghc-compat-plugin-0.1.0.1/src/LICENSE.AGPL-3.0-only) | Eases support for multiple GHC versions |  |
-| `henforcer` | [`1.0.0.1`](http://hackage.haskell.org/package/henforcer-1.0.0.1) | [`MIT`](http://hackage.haskell.org/package/henforcer-1.0.0.1/src/LICENSE) | GHC plugin to enforce user specified rules on code. |  |
+| **`ghc`** | [`9.10.1`](http://hackage.haskell.org/package/ghc-9.10.1) | [`BSD-3-Clause`](http://hackage.haskell.org/package/ghc-9.10.1/src/LICENSE) | The GHC API | `ghc-compat-plugin`, `henforcer`, `pollock`, `recursion-analysis` |
+| `ghc-compat-plugin` | [`0.1.0.1`](http://hackage.haskell.org/package/ghc-compat-plugin-0.1.0.1) | [`AGPL-3.0-only`](http://hackage.haskell.org/package/ghc-compat-plugin-0.1.0.1/src/LICENSE.AGPL-3.0-only) | Eases support for multiple GHC versions | `recursion-analysis` |
+| `henforcer` | [`1.0.0.1`](http://hackage.haskell.org/package/henforcer-1.0.0.1) | [`MIT`](http://hackage.haskell.org/package/henforcer-1.0.0.1/src/LICENSE) | GHC plugin to enforce user specified rules on code. | `recursion-analysis` |
+| `recursion-analysis` | [`0.0.0.0`](http://hackage.haskell.org/package/recursion-analysis-0.0.0.0) |  *MISSING* | *MISSING* |  |
 
 ## Indirect transitive dependencies
 

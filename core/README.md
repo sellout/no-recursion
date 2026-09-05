@@ -1,271 +1,43 @@
-# NoRecursion plugin
+# recursion-analysis
 
-[![Hackage Version](https://img.shields.io/hackage/v/no-recursion)](https://hackage.haskell.org/package/no-recursion)
-[![Packaging status](https://repology.org/badge/tiny-repos/haskell:no-recursion.svg)](https://repology.org/project/haskell:no-recursion/versions)
-[![latest packaged versions](https://repology.org/badge/latest-versions/haskell:no-recursion.svg)](https://repology.org/project/haskell:no-recursion/versions)
+Finding recursion in GHC Core.
 
-A GHC plugin to remove support for recursion
+This is the analysis behind the [`no-recursion`](../plugin) plugin, separated
+from it so that it can be linked into a test-suite and called directly. The
+plugin is a thin shell around this: it reads its options, calls
+`failOnRecursion`, and aborts the compilation if anything comes back.
 
-General recursion can be the cause of a lot of problems. This removes recursion from GHC, allowing you to guarantee you’re using other mechanisms, like recursion schemes.
+## What it does
 
-## usage
-
-Add `no-recursion` to your build dependencies.
-
-Add `-fplugin NoRecursion` to your GHC options. This can be done per-module with
-
-```haskell
-{-# options_ghc -fplugin NoRecursion #-}
-```
-
-Now, any recursion in that module will result in a compilation failure.
-
-**NB**: This won’t prevent you from using recursive functions imported from other modules, but inlined definitions from other modules _will_ be checked.
-
-### allowing some recursion
-
-The recommended way to re-enable recursion at the module level is to add
+`failOnRecursion` walks a list of Core bindings and reports every recursive
+binding group that the options don’t excuse, along with the chain of binders it
+was found under.
 
 ```haskell
-{-# options_ghc -fplugin-opt=NoRecursion:allow-recursion:true #-}
+failOnRecursion ::
+  (b -> String) ->      -- ^ name a binder
+  (b -> [String]) ->    -- ^ the annotations on a binder
+  [String] ->           -- ^ the annotations on the module
+  Opts ->
+  [Plugins.Bind b] ->
+  Either (NonEmpty (RecursionRecord b)) ()
 ```
 
-at the beginning of the file.
-
-If you want to re-enable it for specific definitions, the best way is to use
-
-```haskell
-{-# options_ghc -fplugin-opt=NoRecursion:ignore-decls:recDef #-}
-
-recDef :: a -> b
-recDef = recDef
-```
-
-You can also do it with a source annotation
-
-```haskell
-recDef :: a -> b
-recDef = recDef
-{-# ann recDef "Recursion" #-}
-```
-
-Unfortunately, the `ann` pragma isn’t allowed by [Safe Haskell](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/safe_haskell.html), so any module that uses it will be inferred as `Unsafe`. So you have to decide between an `Unsafe` (or `Trustworthy`) module and not enabling recursion for the entire module. This can be mitigated by putting recursive definitions in a module by themselves.
-
-NoRecursion supports two [source annotations](https://downloads.haskell.org/ghc/latest/docs/users_guide/extending_ghc.html#source-annotations): `"Recursion"` and `"NoRecursion"`.
-
-You can re-enable recursion for an entire module with
-
-```haskell
-{-# ann module "Recursion" #-}
-```
-
-And then you can re-disable recursion for individual names with
-
-```haskell
-nonRecDef :: a -> a
-nonRecDef = id
-{-# ann nonRecDef "NoRecursion" #-}
-```
-
-If both '"Recursion"' and `"NoRecursion"` annotations exist on the same name (or module), it’s treated as `NoRecursion`.
-
-**NB**: If multiple names are mutually recursive, then they must all have recursion enabled to avoid being flagged by the plugin.
-
-`ANN` has some caveats:
-
-- If you enable [the `OverloadedStrings` language extension](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/overloaded_strings.html), you will have to specify the type in the annotation, like
-
-  ```haskell
-  {-# ann module "Recursion" :: String #-}
-  ```
-
-### plugin options
-
-The plugin currently supports four options
-
-- `allow-recursion`: (`true`|`false`) whether to allow recursion by default. As mentioned above, this is the best way to re-enable recursion for a single module, but you can do the reverse and specify `allow-recursion:true` globally, then use `allow-recursion:false` per-module.
-
-- `ignore-method-cycles`: (`true`|`false`) whether to ignore cycles between method definitions.the method level. This crops up a lot with errors about things like `$csconcat`.
-
-- `ignore-methods`: (list of method names) ignores the named methods. Very useful for silencing errors about default method definitions.
-
-- `ignore-decls`: (list of decl names) ignores the named decls. This is good to put at the top of a module where you have intentionally written a recursive definition.
-
-### suggestions
-
-#### `in $csconcat, the following bindings were recursive: go1`
-
-This particular message occurs when you define a `Semigroup` instance that didn’t have an explicit `sconcat` implementation. The default definition is recursive, and `NoRecursion` catches that. Similar messages occur with default definitions for other classes as well.
-
-You can’t apply `ann` to methods, so here are some ways to get around this issue:
-
-1. write an explicit non-recursive definition, or
-2. add `{-# options_ghc -fplugin-opt=NoRecursion:ignore-methods:sconcat #-}` to the top of the module, which will ignore this method module-wide.
-
-Unfortunately, because `sconcat` (and `mconcat`) require lazy lists (`[]`), it’s not possible to write a total definition for these.
-
-### mitigating [dependency hell](https://en.wikipedia.org/wiki/Dependency_hell)
-
-As NoRecursion is effectively a linter, you don’t have to depend on it in every case (although, be careful, because different GHC versions may catch (or induce) different occurrences of recursion).
-
-It’s easy to conditionalize the use of NoRecursion by adding the following (with a suitable replacement for `_`) to the stanzas in your Cabal file:
-
-```cabal
-  if _
-    build-depends:
-      no-recursion ^>= {x.y.z},
-    ghc-options:
-      -fplugin=NoRecursion
-```
-
-If the plugin isn’t enabled, any `-fplugin-opt=NoRecursion:…` elsewhere will simply be ignored.
-
-Here are a couple concrete situations where this is useful.
-
-#### you support a some environment that NoRecursion doesn’t
-
-```cabal
-  if impl(ghc >= 9.6.1) && impl(ghc < 9.14.1) && !arch(i386)
-```
-
-With the above condition, NoRecursion will only be used with GHC 9.6.1–9.12 and on architectures that aren’t i386 (32-bit).
-
-Of course, we would love to have NoRecursion work in all your environments, so please [open an issue](https://github.com/sellout/no-recursion/issues/new?title=Add+support+for+&labels=dependencies,enhancement) if you find yourself using this approach. Since it’s a compiler plugin, it’s more sensitive to GHC changes than most code, so just ignoring dependency bounds is less likely to work.
-
-#### you want to get out of consumers’ way
-
-A common situation is depending on a version that isn’t widely available (this can happen with Stackage or maybe it’s an unpublished revision that you’ve added as a `source-repository-package`).
-
-In this case, you can define a flag in your Cabal file
-
-```cabal
-flag verify-no-recursion
-  description:
-    Compile with "NoRecursion" enabled. This is intended for developers of this
-    package.
-  default: False
-  manual: True
-```
-
-And then conditionalize on that
-
-```cabal
-  if flag(verify-no-recursion)
-```
-
-In cabal.project, you should also add
-
-```cabal
-flags:
-  +verify-no-recursion
-```
-
-which will ensure that the flag doesn’t get automatically disabled when doing local development. You don’t want to discover that you had the `no-recursion` bounds set incorrectly only after a user complains that they can’t compile your library because of recursion errors.
-
-If you’re using Stack, you can achieve the same thing with
-
-```yaml
-flags:
-  local-package:
-    verify-no-recursion: true
-  another-local-package:
-    verify-no-recursion: true
-```
-
-Note that with Stack you need to set the flag separately for each package in your project.
-
-You can see an example of this (with Cabal) in the [duoids](https://github.com/sellout/duoids/blob/6de6468d173fdb8b95db3789d65984289b7b42d5/core/duoids.cabal#L64-L70) project.
-
-## versioning
-
-This project largely follows the [Haskell Package Versioning Policy](https://pvp.haskell.org/) (PVP), but is more strict in some ways.
-
-The version always has four components, `A.B.C.D`. The first three correspond to those required by PVP, while the fourth matches the “patch” component from [Semantic Versioning](https://semver.org/).
-
-Here is a breakdown of some of the constraints:
-
-### sensitivity to additions to the API
-
-PVP recommends that clients follow [these import guidelines](https://wiki.haskell.org/Import_modules_properly) in order that they may be considered insensitive to additions to the API. However, this isn’t sufficient. We expect clients to follow these additional recommendations for API insensitivity
-
-If you don’t follow these recommendations (in addition to the ones made by PVP), you should ensure your dependencies don’t allow a range of `C` values. That is, your dependencies should look like
-
-```cabal
-yaya >=1.2.3 && <1.2.4
-```
-
-rather than
-
-```cabal
-yaya >=1.2.3 && <1.3
-```
-
-#### use package-qualified imports everywhere
-
-If your imports are [package-qualified](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/package_qualified_imports.html?highlight=packageimports#extension-PackageImports), then a dependency adding new modules can’t cause a conflict with modules you already import.
-
-#### avoid orphans
-
-Because of the transitivity of instances, orphans make you sensitive to your dependencies’ instances. If you have an orphan instance, you are sensitive to the APIs of the packages that define the class and the types of the instance.
-
-One way to minimize this sensitivity is to have a separate package (or packages) dedicated to any orphans you have. Those packages can be sensitive to their dependencies’ APIs, while the primary package remains insensitive, relying on the tighter ranges of the orphan packages to constrain the solver.
-
-### transitively breaking changes (increments `A`)
-
-#### removing a type class instance
-
-Type class instances are imported transitively, and thus changing them can impact packages that only have your package as a transitive dependency.
-
-#### widening a dependency range with new major versions
-
-This is a consequence of instances being transitively imported. A new major version of a dependency can remove instances, and that can break downstream clients that unwittingly depended on those instances.
-
-A library _may_ declare that it always bumps the `A` component when it removes an instance (as this policy dictates). In that case, only `A` widenings need to induce `A` bumps. `B` widenings can be `D` bumps like other widenings, Alternatively, one may compare the APIs when widening a dependency range, and if no instances have been removed, make it a `D` bump.
-
-### breaking changes (increments `B`)
-
-#### restricting an existing dependency’s version range in any way
-
-Consumers have to contend not only with our version bounds, but also with those of other libraries. It’s possible that some dependency overlapped in a very narrow way, and even just restricting a particular patch version of a dependency could make it impossible to find a dependency solution.
-
-#### restricting the license in any way
-
-Making a license more restrictive may prevent clients from being able to continue using the package.
-
-#### adding a dependency
-
-A new dependency may make it impossible to find a solution in the face of other packages dependency ranges.
-
-### non-breaking changes (increments `C`)
-
-#### adding a module
-
-This is also what PVP recommends. However, unlike in PVP, this is because we recommend that package-qualified imports be used on all imports.
-
-### other changes (increments `D`)
-
-#### widening a dependency range for non-major versions
-
-This is fairly uncommon, in the face of `^>=`-style ranges, but it can happen in a few situations.
-
-#### deprecation
-
-**NB**: This case is _weaker_ than PVP, which indicates that packages should bump their major version when adding `deprecation` pragmas.
-
-We disagree with this because packages shouldn’t be _publishing_ with `-Werror`. The intent of deprecation is to indicate that some API _will_ change. To make that signal a major change itself defeats the purpose. You want people to start seeing that warning as soon as possible. The major change occurs when you actually remove the old API.
-
-Yes, in development, `-Werror` is often (and should be) used. However, that just helps developers be aware of deprecations more immediately. They can always add `-Wwarn=deprecation` in some scope if they need to avoid updating it for the time being.
-
-## licensing
-
-This package is licensed under [The GNU AGPL 3.0 only](./LICENSE). If you need a license for usage that isn’t covered under the AGPL, please contact [Greg Pfeil](mailto:greg@technomadic.org?subject=licensing%20no-recursion).
-
-You should review the [license report](docs/license-report.md) for details about dependency licenses.
-
-## comparisons
-
-Other projects similar to this one, and how they differ.
-
-### [WartRemover](https://www.wartremover.org/)
-
-WartRemover is a Scala linting tool. [A `Recursion` wart](https://www.wartremover.org/doc/warts.html#recursion) was added in 2017, and I’ve been meaning to write this plugin ever since. It only took seven years to find a few hours to make it happen …
+Two things are worth noticing in that signature.
+
+It is generic in the binder. GHC’s `Expr b`, `Bind b` and `Alt b` are all
+parameterised, and the traversal never looks inside a `Var` occurrence —
+recursion is read off `Rec` binding groups — so the analysis works just as well
+at `b ~ String` as at `b ~ CoreBndr`.
+
+It takes what it needs to know about a binder as functions. A plugin passes
+`showSDoc dflags . ppr` and a lookup into the module’s annotation environment; a
+test passes `id` and a lookup in a list. Nothing here needs a compiler session,
+which is the whole point of the separation.
+
+## Versioning
+
+Versions are four components, `A.B.C.D`, and this package follows the same
+policy as `no-recursion`, which its README sets out in full. In short: `D` for
+changes that can’t break anything, `C` for additions, `B` for breaking changes,
+and `A` for widening a dependency to a new major version.

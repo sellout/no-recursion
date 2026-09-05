@@ -22,4 +22,5 @@ program-options
 tests: True
 
 packages:
-  ./core/no-recursion.cabal
+  ./core/recursion-analysis.cabal
+  ./plugin/no-recursion.cabal

@@ -21,3 +21,8 @@
 /core/LICENSE.proprietary linguist-generated
 /core/henforcer.toml linguist-generated
 /nix-ci.nix linguist-generated
+/plugin/LICENSE linguist-generated
+/plugin/LICENSE.AGPL-3.0-only linguist-generated
+/plugin/LICENSE.Universal-FOSS-exception-1.0 linguist-generated
+/plugin/LICENSE.proprietary linguist-generated
+/plugin/henforcer.toml linguist-generated
