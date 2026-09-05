@@ -27,7 +27,7 @@ Now, any recursion in that module will result in a compilation failure.
 The recommended way to re-enable recursion at the module level is to add
 
 ```haskell
-{-# options_ghc -fplugin-opt=NoRecursion:allowRecursion=true #-}
+{-# options_ghc -fplugin-opt=NoRecursion:allowRecursion=True #-}
 ```
 
 at the beginning of the file.
@@ -83,9 +83,9 @@ If both '"Recursion"' and `"NoRecursion"` annotations exist on the same name (or
 
 The plugin currently supports four options
 
-- `allowRecursion`: (`true`|`false`) whether to allow recursion by default. As mentioned above, this is the best way to re-enable recursion for a single module, but you can do the reverse and specify `allowRecursion:true` globally, then use `allowRecursion:false` per-module.
+- `allowRecursion`: (`True`|`False`) whether to allow recursion by default. As mentioned above, this is the best way to re-enable recursion for a single module, but you can do the reverse and specify `allowRecursion=True` globally, then use `allowRecursion=False` per-module.
 
-- `ignoreMethodCycles`: (`true`|`false`) whether to ignore cycles between method definitions.the method level. This crops up a lot with errors about things like `$csconcat`.
+- `ignoreMethodCycles`: (`True`|`False`) whether to ignore cycles between method definitions.the method level. This crops up a lot with errors about things like `$csconcat`.
 
 - `ignoredMethods`: (list of method names) ignores the named methods. Very useful for silencing errors about default method definitions.
 

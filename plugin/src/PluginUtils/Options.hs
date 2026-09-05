@@ -126,6 +126,8 @@ parseBool :: Maybe String -> Either Error Bool
 parseBool = maybe (pure True) \case
   "true" -> pure True
   "false" -> pure False
+  "True" -> pure True
+  "False" -> pure False
   value -> Left $ UnknownValue "Bool" value
 
 -- | Reads a comma-separated option value as the list it denotes.
