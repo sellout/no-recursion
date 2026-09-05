@@ -19,17 +19,17 @@ where
 
 import safe "base" Control.Applicative (pure)
 import safe "base" Control.Category ((.))
-import safe "base" Data.Bifunctor (second)
 import safe "base" Data.Bool (Bool (False, True))
 import safe "base" Data.Either (Either (Left))
-import safe "base" Data.Foldable (foldr)
-import safe "base" Data.Function (flip, ($))
+import safe "base" Data.Eq ((==))
+import safe "base" Data.Function (($))
+import safe "base" Data.Functor (fmap)
 import safe "base" Data.Kind (Type)
-import safe "base" Data.List (drop, elemIndex, splitAt)
-import safe "base" Data.Maybe (Maybe (Nothing), maybe)
+import safe "base" Data.List (break)
+import safe "base" Data.List.NonEmpty (nonEmpty, tail)
+import safe "base" Data.Maybe (Maybe, maybe)
 import safe "base" Data.Semigroup ((<>))
 import safe "base" Data.String (String)
-import safe "base" Data.Tuple (curry)
 import safe "base" Text.Show (Show)
 import "ghc" GHC.Plugins qualified as Plugins
 
@@ -86,9 +86,7 @@ prettyError pluginName optionName =
 --
 -- @since 99999
 process :: Plugins.CommandLineOption -> (String, Maybe String)
-process opt =
-  maybe (opt, Nothing) (second (pure . drop 1) . flip splitAt opt) $
-    elemIndex '=' opt
+process = fmap (fmap tail . nonEmpty) . break (== '=')
 
 -- | Reads an option that has no meaning without a value, so that every such
 --   option reports a missing one the same way. @typ@ names what was expected.
@@ -135,10 +133,9 @@ parseBool = maybe (pure True) \case
 -- @since 99999
 parseList :: String -> [String]
 parseList =
-  foldr
-    ( curry $ \case
-        (',', elems) -> [] : elems
-        (c, []) -> [[c]]
-        (c, curr : elems) -> (c : curr) : elems
-    )
-    []
+  ( \case
+      ("", "") -> []
+      (item, "") -> [item]
+      (item, _comma : rest) -> item : parseList rest
+  )
+    . break (== ',')
