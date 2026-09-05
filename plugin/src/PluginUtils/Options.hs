@@ -30,6 +30,7 @@ import safe "base" Data.Maybe (Maybe (Nothing), maybe)
 import safe "base" Data.Semigroup ((<>))
 import safe "base" Data.String (String)
 import safe "base" Data.Tuple (curry)
+import safe "base" Text.Show (Show)
 import "ghc" GHC.Plugins qualified as Plugins
 
 -- | The ways an option can fail to be understood.
@@ -51,6 +52,7 @@ data Error
     -- @since 99999
     UnknownValue String String
   | MissingRequiredOption
+  deriving stock (Show)
 
 -- | Renders an `Error` the way GHC renders its own option errors.
 --
@@ -97,6 +99,27 @@ parseRequiringVal ::
 parseRequiringVal parser typ = maybe (Left $ MissingValue typ) parser
 
 -- | Reads a `Bool`-valued option.
+--
+--   >>> parseBool $ pure "true"
+--   Right True
+--   >>> parseBool $ pure "false"
+--   Right False
+--
+--   Haskell capitalises its `Bool`s, and so should this.
+--
+--   >>> parseBool $ pure "True"
+--   Right True
+--   >>> parseBool $ pure "False"
+--   Right False
+--
+--   Nothing else reads as a `Bool` — in particular not a shoutier spelling of
+--   one, which is what stops the four arms above being collapsed to two with
+--   `Data.Char.toLower`.
+--
+--   >>> parseBool $ pure "yes"
+--   Left (UnknownValue "Bool" "yes")
+--   >>> parseBool $ pure "TRUE"
+--   Left (UnknownValue "Bool" "TRUE")
 --
 -- @since 99999
 parseBool :: Maybe String -> Either Error Bool
