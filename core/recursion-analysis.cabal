@@ -55,12 +55,7 @@ custom-setup
     --       as high as `cabal-version` at the top of this file, and Hackage
     --       requires it to have _some_ upper bound. (Since there’s no direct
     --       dependency, it doesn’t use PVP bounds.)
-    --
-    -- TODO: Due to haskell/cabal#9375, 3.10.3 is required in order to load
-    --       plugins from a `ghc-options` field. Unfortunately, GHCs prior to
-    --       9.8.3 include an older Cabal, so a newer one may need to be
-    --       manually installed.
-    Cabal >= 3.10.3 && < 99,
+    Cabal >= 3.0 && < 99,
     base ^>= {4.16.0, 4.17.0, 4.18.0, 4.19.0, 4.20.0, 4.21.0, 4.22.0},
     cabal-doctest ^>= {1.0.0},
 
@@ -162,6 +157,20 @@ library
     ghc ^>= {9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1, 9.12.1, 9.14.1},
   exposed-modules:
     GHC.Recursion
+
+test-suite unit
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    tests/unit
+  main-is: test.hs
+  other-modules:
+    GHC.Recursion.Test.Quote
+  build-depends:
+    ghc ^>= {9.2.1, 9.4.1, 9.6.1, 9.8.1, 9.10.1, 9.12.1, 9.14.1},
+    hspec ^>= {2.7.1, 2.9.3, 2.11.0},
+    recursion-analysis,
+    template-haskell ^>= {2.18.0, 2.19.0, 2.20.0, 2.21.0, 2.22.0, 2.23.0, 2.24.0},
 
 test-suite doctests
   import: defaults

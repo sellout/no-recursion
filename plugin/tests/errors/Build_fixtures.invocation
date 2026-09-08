@@ -1,0 +1,2 @@
+This file’s never read. It exists to trigger the “invocation” preprocessor that
+Setup.hs registers with Cabal, which writes the real `Build_fixtures` module.
