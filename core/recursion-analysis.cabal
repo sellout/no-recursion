@@ -142,7 +142,8 @@ common defaults
     NoStarIsType
     NoTypeApplications
   if flag(noisy-deprecations)
-    cpp-options: -DSELLOUT_NOISY_DEPRECATIONS
+    cpp-options:
+      -DSELLOUT_NOISY_DEPRECATIONS
   if flag(lint) && impl(ghc >= 9.4.2)
     build-depends:
       henforcer ^>= {1.0.0},
@@ -181,6 +182,10 @@ test-suite doctests
   build-depends:
     doctest ^>= {0.18.2, 0.20.1, 0.21.1, 0.22.2, 0.24.0, 0.25.0},
     recursion-analysis,
+  -- NB: Adjust this to contain any components that may have doctests (including
+  --     executables).
+  x-doctest-components:
+    lib
   -- TODO: The sections below here are necessary because we don’t have control
   --       over the generated `Build_doctests.hs` file. So we have to silence
   --       all of its warnings one way or another.

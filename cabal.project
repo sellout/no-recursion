@@ -2,8 +2,8 @@
 -- initializing and updating dependency bounds, but shouldn’t have an impact on
 -- regular usage, because the explicit bounds reduce the search space.
 max-backjumps: -1
-minimize-conflict-set: true
-reorder-goals: true
+minimize-conflict-set: True
+reorder-goals: True
 
 -- Maximize parallelism
 jobs: $ncpus
