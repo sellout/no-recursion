@@ -96,7 +96,6 @@
         "astrolabe-hook": "astrolabe-hook",
         "bash-strict-mode": "bash-strict-mode",
         "flake-utils": "flake-utils",
-        "garnix-systems": "garnix-systems",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
         "project-manager": "project-manager",
@@ -105,11 +104,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785555248,
-        "narHash": "sha256-aegLiD07wvZn7KMcAI2LX0grFj4aN/wDhSPl3+aGx+o=",
+        "lastModified": 1788236255,
+        "narHash": "sha256-6RNCcc6q7O88T/7JHiJYv/0ys6F/A4vOR7tlv1gtOrA=",
         "owner": "sellout",
         "repo": "flaky",
-        "rev": "b9a838a2e5d5f10ef99e70a7a085edae854c2a60",
+        "rev": "5759c4c30d9d354f33c708de0ebb3515e351d01d",
         "type": "github"
       },
       "original": {
@@ -153,21 +152,6 @@
         "type": "github"
       }
     },
-    "garnix-systems": {
-      "locked": {
-        "lastModified": 1723225755,
-        "narHash": "sha256-y17fVgb4LJheN4VDsHCmZRHrOJwKj8oUPvXk2FqUOnI=",
-        "owner": "garnix-io",
-        "repo": "nix-systems",
-        "rev": "c2466c5c1d3591933b4389868902e2f47a47fadb",
-        "type": "github"
-      },
-      "original": {
-        "owner": "garnix-io",
-        "repo": "nix-systems",
-        "type": "github"
-      }
-    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -176,11 +160,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784350909,
-        "narHash": "sha256-ZWyzLbS1yKUTeFJLmdVuWNnHttL333/ldJbEE+KzCrM=",
+        "lastModified": 1787377438,
+        "narHash": "sha256-Sxu1NLTD/Ern6hFGLlZmtKCSct3YQXZI/lls8RE1XeM=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "4ce190229c73d44536caa7072f6308fb2d8feeb3",
+        "rev": "65258d5c65a250189fde2e35f490d15e064c4c62",
         "type": "github"
       },
       "original": {
@@ -192,11 +176,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1784826139,
-        "narHash": "sha256-e0BAwQKg2NEyvRm+onITDKXV4Bdda85IlxEBHhWfmW4=",
+        "lastModified": 1788226842,
+        "narHash": "sha256-73tmYCvXYPUfN4HrnzJJv4So/L0TTPzKHrPBDOPAeac=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "b6ad4550391dca061b3485437284d8b3a4ae6a25",
+        "rev": "217d16e6b631f6a9e376f2efc09b59e72673cabc",
         "type": "github"
       },
       "original": {
