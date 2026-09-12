@@ -52,7 +52,7 @@ recDef = recDef
 {-# ann recDef "Recursion" #-}
 ```
 
-Unfortunately, the `ann` pragma isn’t allowed by [Safe Haskell](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/safe_haskell.html), so any module that uses it will be inferred as `Unsafe`. So you have to decide between an `Unsafe` (or `Trustworthy`) module and not enabling recursion for the entire module. This can be mitigated by putting recursive definitions in a module by themselves.
+Unfortunately, the `ann` pragma isn’t allowed by [Safe Haskell](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/safe_haskell.html), so any module that uses it will be inferred as `Unsafe`. `-fplugin-opt NoRecursion:allowRecursion=True` doesn’t have that issue.
 
 NoRecursion supports two [source annotations](https://downloads.haskell.org/ghc/latest/docs/users_guide/extending_ghc.html#source-annotations): `"Recursion"` and `"NoRecursion"`.
 
@@ -74,7 +74,7 @@ If both '"Recursion"' and `"NoRecursion"` annotations exist on the same name (or
 
 **NB**: If multiple names are mutually recursive, then they must all have recursion enabled to avoid being flagged by the plugin.
 
-`ANN` has some caveats:
+`ann` has some caveats:
 
 - If you enable [the `OverloadedStrings` language extension](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/overloaded_strings.html), you will have to specify the type in the annotation, like
 
@@ -90,13 +90,13 @@ The plugin currently supports four options
 
 - `ignoreMethodCycles`: (`True`|`False`) whether to ignore cycles between method definitions.the method level. This crops up a lot with errors about things like `$csconcat`.
 
-- `ignoredMethods`: (list of method names) ignores the named methods. Very useful for silencing errors about default method definitions.
+- `ignoredMethods`: (list of method names) ignores the named methods. Useful for silencing errors about default method definitions.
 
-- `ignoredDecls`: (list of decl names) ignores the named decls. This is good to put at the top of a module where you have intentionally written a recursive definition.
+- `ignoredDecls`: (list of decl names) ignores the named declarations. This is good to put at the top of a module where you have intentionally written a recursive definition.
 
 An option that takes a value is written `-fplugin-opt NoRecursion:‹name›=‹value›` — GHC’s own `NoRecursion:` prefix, then the option name, then `=`, then the value. An option that takes no value is just the name.
 
-If a `Bool` option is given more than once, the last one wins, so an `options_ghc` pragma at the top of a module overrides an entry in your Cabal file’s `ghc-options`. `ignoredDecls` and `ignoredMethods` accumulate instead: every occurrence adds to the list, and there is no way to take a name back off it. An option that isn’t recognised, or that is missing a value, stops the compilation rather than being ignored.
+If a `Bool` option is given more than once, the last one wins, so an `options_ghc` pragma at the top of a module overrides an entry in your Cabal file’s `ghc-options`. `ignoredDecls` and `ignoredMethods` accumulate instead: every occurrence adds to the list, and there is no way to take a name back off it. An option that isn’t recognised, or that’s missing a value, stops the compilation rather than being ignored.
 
 ### suggestions
 
@@ -107,7 +107,7 @@ This particular message occurs when you define a `Semigroup` instance that didn�
 You can’t apply `ann` to methods, so here are some ways to get around this issue:
 
 1. write an explicit non-recursive definition, or
-2. add `{-# options_ghc -fplugin-opt=NoRecursion:ignoredMethods=sconcat #-}` to the top of the module, which will ignore this method module-wide.
+2. add `{-# options_ghc -fplugin-opt=NoRecursion:ignoredMethods=sconcat #-}` to the top of the module, which ignores this method module-wide.
 
 Unfortunately, because `sconcat` (and `mconcat`) require lazy lists (`[]`), it’s not possible to write a total definition for these.
 
@@ -115,7 +115,7 @@ Unfortunately, because `sconcat` (and `mconcat`) require lazy lists (`[]`), it�
 
 As NoRecursion is effectively a linter, you don’t have to depend on it in every case (although, be careful, because different GHC versions may catch (or induce) different occurrences of recursion).
 
-It’s easy to conditionalize the use of NoRecursion by adding the following (with a suitable replacement for `_`) to the stanzas in your Cabal file:
+You can conditionalize the use of NoRecursion by adding the following (with a suitable replacement for `_`) to the stanzas in your Cabal file:
 
 ```cabal
   if _
@@ -125,7 +125,7 @@ It’s easy to conditionalize the use of NoRecursion by adding the following (wi
       -fplugin=NoRecursion
 ```
 
-If the plugin isn’t enabled, any `-fplugin-opt=NoRecursion:…` elsewhere will simply be ignored.
+If the plugin isn’t enabled, any `-fplugin-opt NoRecursion:…` elsewhere will be ignored.
 
 Here are a couple concrete situations where this is useful.
 
@@ -135,9 +135,9 @@ Here are a couple concrete situations where this is useful.
   if impl(ghc >= 9.6.1) && impl(ghc < 9.14.1) && !arch(i386)
 ```
 
-With the above condition, NoRecursion will only be used with GHC 9.6.1–9.12 and on architectures that aren’t i386 (32-bit).
+With the preceding condition, NoRecursion will only be used with GHC 9.6.1–9.12 and on architectures that aren’t i386 (32-bit).
 
-Of course, we would love to have NoRecursion work in all your environments, so please [open an issue](https://github.com/sellout/no-recursion/issues/new?title=Add+support+for+&labels=dependencies,enhancement) if you find yourself using this approach. Since it’s a compiler plugin, it’s more sensitive to GHC changes than most code, so just ignoring dependency bounds is less likely to work.
+We would love to have NoRecursion work in all your environments, so please [open an issue](https://github.com/sellout/no-recursion/issues/new?title=Add+support+for+&labels=dependencies,enhancement) if you find yourself using this approach. Since it’s a compiler plugin, it’s more sensitive to GHC changes than most code, so just ignoring dependency bounds is less likely to work.
 
 #### you want to get out of consumers’ way
 
@@ -167,7 +167,7 @@ flags:
   +verify-no-recursion
 ```
 
-which will ensure that the flag doesn’t get automatically disabled when doing local development. You don’t want to discover that you had the `no-recursion` bounds set incorrectly only after a user complains that they can’t compile your library because of recursion errors.
+which ensures that the flag doesn’t get automatically turned off when doing local development. You don’t want to discover that you had the `no-recursion` bounds set incorrectly only after a user complains that they can’t compile your library because of recursion errors.
 
 If you’re using Stack, you can achieve the same thing with
 
@@ -179,7 +179,7 @@ flags:
     verify-no-recursion: true
 ```
 
-Note that with Stack you need to set the flag separately for each package in your project.
+Note that with Stack you need to set the flag for each package in your project.
 
 You can see an example of this (with Cabal) in the [duoids](https://github.com/sellout/duoids/blob/6de6468d173fdb8b95db3789d65984289b7b42d5/core/duoids.cabal#L64-L70) project.
 

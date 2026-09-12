@@ -29,7 +29,7 @@ failOnRecursion ::
 
 Two things are worth noticing in that signature.
 
-It is generic in the binder. GHC’s `Expr b`, `Bind b` and `Alt b` are all parameterized, and the traversal never looks inside a `Var` occurrence — recursion is read off `Rec` binding groups – so the analysis works just as well at `b ~ String` as at `b ~ CoreBndr`.
+It’s generic in the binder. GHC’s `Expr b`, `Bind b` and `Alt b` are all parameterized, and the traversal never looks inside a `Var` occurrence — recursion is read off `Rec` binding groups – so the analysis works just as well at `b ~ String` as at `b ~ CoreBndr`.
 
 It takes what it needs to know about a binder as functions. A plugin passes `showSDoc dflags . ppr` and a lookup into the module’s annotation environment; a test passes `id` and a lookup in a list. Nothing here needs a compiler session, which is the whole point of the separation.
 
