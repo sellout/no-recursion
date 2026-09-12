@@ -40,7 +40,7 @@ import "this" NoRecursion.Test.Driver
 
 -- | A `Data.Semigroup.Semigroup` instance whose methods all reach the class
 --   dictionary, so that the desugarer gives them a mutually recursive group —
---   the whole reason @ignoreMethodCycles@ and @ignoreMethods@ exist — with a
+--   the whole reason `ignoreMethodCycles` and `ignoredMethods` exist — with a
 --   recursive helper nested inside each.
 --
 --   Every method is written out rather than left to its default. A default
@@ -174,7 +174,7 @@ spec =
                         ]
                   )
 
-          it "drops only the top-level group with ignore-method-cycles" $
+          it "drops only the top-level group with ignoreMethodCycles" $
             analyze libdir defaultOpts semigroupInstance
               >>= ( `shouldBe`
                       inCore
@@ -184,7 +184,7 @@ spec =
                         ]
                   )
 
-          it "drops what is nested inside the methods named by ignore-methods" $
+          it "drops what is nested inside the methods named by ignoredMethods" $
             analyze
               libdir
               defaultOpts {ignoredMethods = ["stimes", "sconcat"]}

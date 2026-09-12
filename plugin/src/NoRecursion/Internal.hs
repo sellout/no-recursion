@@ -10,18 +10,13 @@
 -- This is not supported API. It is exposed so it can be tested without going
 -- through a compiler session, and may change without a major bump.
 module NoRecursion.Internal
-  ( OptError (MissingValue, UnknownOption, UnknownValue),
-    Opts (Opts, allowRecursion, ignoreMethodCycles, ignoredDecls, ignoredMethods),
+  ( Opts (Opts, allowRecursion, ignoreMethodCycles, ignoredDecls, ignoredMethods),
     defaultOpts,
     failOnRecursion,
     formatRecursionRecord,
-    parseBoolOpt,
-    parseListOpt,
-    prettyOptError,
   )
 where
 
-import safe "base" Control.Applicative (pure)
 import safe "base" Control.Category ((.))
 import safe "base" Control.Monad ((=<<))
 import safe "base" Data.Bool (Bool (False, True), not, (&&), (||))
@@ -30,7 +25,6 @@ import safe "base" Data.Foldable
   ( all,
     any,
     elem,
-    foldr,
     notElem,
     toList,
     traverse_,
@@ -43,7 +37,8 @@ import safe "base" Data.List.NonEmpty (NonEmpty, nonEmpty)
 import safe "base" Data.Maybe (maybe)
 import safe "base" Data.Semigroup ((<>))
 import safe "base" Data.String (String)
-import safe "base" Data.Tuple (curry, fst)
+import safe "base" Data.Tuple (fst)
+import safe "base" Text.Show (Show)
 import "ghc" GHC.Plugins qualified as Plugins
 import safe "recursion-analysis" GHC.Recursion (Record (Record), inBind)
 
@@ -57,11 +52,18 @@ data Opts = Opts
     ignoredDecls :: [String],
     ignoredMethods :: [String]
   }
+  deriving stock (Show)
 
--- | The `Opts` we have if no @-fplugin-opts=NoRecursion:@ are provided.
+-- | The `Opts` we have if no @-fplugin-opt NoRecursion:@ are provided.
 --
--- - recursion is not allowed
--- - recursion cycles between methods is ignored (to avoid a breaking change)
+-- >>> defaultOpts
+-- Opts {allowRecursion = False, ignoreMethodCycles = True, ignoredDecls = [], ignoredMethods = []}
+--
+--   `ignoredDecls` and `ignoredMethods` accumulate if they are given more than
+--   once.
+--
+--   __NOTE__: `ignoreMethodCycles` will default to `False` in a future major
+--             release. If you want it to remain `True`, set it explicitly.
 --
 -- @since 99999
 defaultOpts :: Opts
@@ -72,53 +74,6 @@ defaultOpts =
       ignoredDecls = [],
       ignoredMethods = []
     }
-
--- | The ways an option can fail to be understood.
---
--- @since 99999
-type OptError :: Type
-data OptError
-  = MissingValue String
-  | UnknownOption String
-  | UnknownValue String String
-
--- | Renders an `OptError` the way GHC renders its own option errors.
---
--- @since 99999
-prettyOptError :: OptError -> Plugins.SDoc
-prettyOptError =
-  Plugins.text . \case
-    MissingValue opt ->
-      "plugin option ‘NoRecursion:" <> opt <> "’ is missing a value"
-    UnknownOption name -> "unknown plugin option ‘NoRecursion:" <> name <> "’"
-    UnknownValue typ value ->
-      "an option for the NoRecursion plugin was expecting a "
-        <> typ
-        <> " but received ‘"
-        <> value
-        <> "’"
-
--- | Reads a `Bool`-valued option.
---
--- @since 99999
-parseBoolOpt :: String -> Either OptError Bool
-parseBoolOpt = \case
-  "true" -> pure True
-  "false" -> pure False
-  value -> Left $ UnknownValue "Bool" value
-
--- | Reads a comma-separated option value as the list it denotes.
---
--- @since 99999
-parseListOpt :: String -> [String]
-parseListOpt =
-  foldr
-    ( curry $ \case
-        (',', elems) -> [] : elems
-        (c, []) -> [[c]]
-        (c, curr : elems) -> (c : curr) : elems
-    )
-    []
 
 -- | Renders a record for a human, using @render@ to name each binder.
 --
