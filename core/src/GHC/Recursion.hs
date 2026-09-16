@@ -19,12 +19,11 @@ where
 
 import safe "base" Control.Category ((.))
 import safe "base" Data.Eq (Eq)
-import safe "base" Data.Foldable (Foldable, foldMap)
+import safe "base" Data.Foldable (Foldable, foldMap, foldr)
 import safe "base" Data.Function (($))
-import safe "base" Data.Functor (Functor, fmap, (<$>))
+import safe "base" Data.Functor (Functor, fmap)
 import safe "base" Data.Kind (Type)
 import safe "base" Data.List.NonEmpty (NonEmpty, nonEmpty)
-import safe "base" Data.Maybe (maybe)
 import safe "base" Data.Ord (Ord)
 import safe "base" Data.Semigroup ((<>))
 import safe "base" Data.Traversable (Traversable)
@@ -63,11 +62,10 @@ inBind =
    in \case
         Core.NonRec v rhs -> recInExpr v rhs
         Core.Rec binds ->
-          let nestedRecursion = foldMap (uncurry recInExpr) binds
-           in maybe
-                nestedRecursion
-                (\bnds -> Record [] (fst <$> bnds) : nestedRecursion)
-                $ nonEmpty binds
+          foldr
+            ((:) . Record [] . fmap fst)
+            (foldMap (uncurry recInExpr) binds)
+            $ nonEmpty binds
 
 -- | This collects all identifiable recursion points in an expression.
 --

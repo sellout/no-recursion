@@ -35,7 +35,8 @@ import safe "this" PluginUtils.Options qualified as Opts
 plugin :: Plugins.Plugin
 plugin =
   defaultPurePlugin
-    { Plugins.installCoreToDos = \opts -> liftA2 install (parseOptions opts) . pure
+    { Plugins.installCoreToDos = \opts ->
+        liftA2 install (parseOptions opts) . pure
     }
 
 -- | Reads every option, collecting what went wrong separately from what was
@@ -84,13 +85,13 @@ parseOptions options = do
           . Plugins.showSDoc dflags
           . Plugins.vcat
           . toList
-          . fmap (uncurry (Opts.prettyError "NoRecursion"))
+          . fmap (uncurry $ Opts.prettyError "NoRecursion")
       )
       (nonEmpty errs)
 
 install :: Opts -> [Plugins.CoreToDo] -> [Plugins.CoreToDo]
 install opts =
-  (Plugins.CoreDoPluginPass "add NoRecursion rule" (noRecursionPass opts) :)
+  (Plugins.CoreDoPluginPass "NoRecursion" (noRecursionPass opts) :)
 
 noRecursionPass :: Opts -> Plugins.ModGuts -> Plugins.CoreM Plugins.ModGuts
 noRecursionPass opts guts = do

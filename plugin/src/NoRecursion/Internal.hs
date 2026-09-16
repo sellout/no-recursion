@@ -29,7 +29,7 @@ import safe "base" Data.Foldable
     toList,
     traverse_,
   )
-import safe "base" Data.Function (flip, ($))
+import safe "base" Data.Function (($))
 import safe "base" Data.Functor ((<$>))
 import safe "base" Data.Kind (Type)
 import safe "base" Data.List (filter, intercalate, isPrefixOf, null)
@@ -132,8 +132,8 @@ failOnRecursion
         ( not
             . \(Record context recs) ->
               ignoreMethodCycles opts && null context && all (isInternalName . render) recs
-                || any (flip elem (ignoredDecls opts) . render) recs
-                || any (flip elem (("$c" <>) <$> ignoredMethods opts) . render) context
+                || any ((`elem` ignoredDecls opts) . render) recs
+                || any ((`elem` (("$c" <>) <$> ignoredMethods opts)) . render) context
         )
       $ inBind
         =<< filter
