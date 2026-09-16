@@ -70,7 +70,7 @@ nonRecDef = id
 {-# ann nonRecDef "NoRecursion" #-}
 ```
 
-If both '"Recursion"' and `"NoRecursion"` annotations exist on the same name (or module), it’s treated as `NoRecursion`.
+If both `"Recursion"` and `"NoRecursion"` annotations exist on the same name (or module), it’s treated as `NoRecursion`.
 
 **NB**: If multiple names are mutually recursive, then they must all have recursion enabled to avoid being flagged by the plugin.
 
@@ -88,7 +88,7 @@ The plugin currently supports four options
 
 - `allowRecursion`: (`True`|`False`) whether to allow recursion by default. As mentioned above, this is the best way to re-enable recursion for a single module, but you can do the reverse and specify `allowRecursion=True` globally, then use `allowRecursion=False` per-module.
 
-- `ignoreMethodCycles`: (`True`|`False`) whether to ignore cycles between method definitions.the method level. This crops up a lot with errors about things like `$csconcat`.
+- `ignoreMethodCycles`: (`True`|`False`) whether to ignore cycles between method definitions. A default implementation ends up mutually recursive with the instance that inherits it, so the cycle is at the method level rather than in anything you wrote. This crops up a lot with errors about things like `$csconcat`.
 
 - `ignoredMethods`: (list of method names) ignores the named methods. Useful for silencing errors about default method definitions.
 
@@ -102,7 +102,7 @@ If a `Bool` option is given more than once, the last one wins, so an `options_gh
 
 #### `in $csconcat, the following bindings were recursive: go1`
 
-This particular message occurs when you define a `Semigroup` instance that didn’t have an explicit `sconcat` implementation. The default definition is recursive, and `NoRecursion` catches that. Similar messages occur with default definitions for other classes as well.
+This particular message occurs when you define a `Semigroup` instance that doesn’t have an explicit `sconcat` implementation. The default definition is recursive, and `NoRecursion` catches that. Similar messages occur with default definitions for other classes as well.
 
 You can’t apply `ann` to methods, so here are some ways to get around this issue:
 
@@ -122,20 +122,20 @@ You can conditionalize the use of NoRecursion by adding the following (with a su
     build-depends:
       no-recursion ^>= {x.y.z},
     ghc-options:
-      -fplugin=NoRecursion
+      -fplugin NoRecursion
 ```
 
 If the plugin isn’t enabled, any `-fplugin-opt NoRecursion:…` elsewhere will be ignored.
 
 Here are a couple concrete situations where this is useful.
 
-#### you support a some environment that NoRecursion doesn’t
+#### you support some environment that NoRecursion doesn’t
 
 ```cabal
   if impl(ghc >= 9.6.1) && impl(ghc < 9.14.1) && !arch(i386)
 ```
 
-With the preceding condition, NoRecursion will only be used with GHC 9.6.1–9.12 and on architectures that aren’t i386 (32-bit).
+With the preceding condition, NoRecursion will only be used with GHC 9.6.1 up to but not including 9.14.1, and on architectures that aren’t i386 (32-bit).
 
 We would love to have NoRecursion work in all your environments, so please [open an issue](https://github.com/sellout/no-recursion/issues/new?title=Add+support+for+&labels=dependencies,enhancement) if you find yourself using this approach. Since it’s a compiler plugin, it’s more sensitive to GHC changes than most code, so just ignoring dependency bounds is less likely to work.
 
@@ -146,7 +146,7 @@ A common situation is depending on a version that isn’t widely available (this
 In this case, you can define a flag in your Cabal file
 
 ```cabal
-flag verify-no-recursion
+flag lint
   description:
     Compile with "NoRecursion" enabled. This is intended for developers of this
     package.
@@ -157,14 +157,14 @@ flag verify-no-recursion
 And then conditionalize on that
 
 ```cabal
-  if flag(verify-no-recursion)
+  if flag(lint)
 ```
 
 In cabal.project, you should also add
 
 ```cabal
 flags:
-  +verify-no-recursion
+  +lint
 ```
 
 which ensures that the flag doesn’t get automatically turned off when doing local development. You don’t want to discover that you had the `no-recursion` bounds set incorrectly only after a user complains that they can’t compile your library because of recursion errors.
@@ -174,9 +174,9 @@ If you’re using Stack, you can achieve the same thing with
 ```yaml
 flags:
   local-package:
-    verify-no-recursion: true
+    lint: true
   another-local-package:
-    verify-no-recursion: true
+    lint: true
 ```
 
 Note that with Stack you need to set the flag for each package in your project.
