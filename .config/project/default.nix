@@ -76,10 +76,8 @@
   ];
 
   ## CI
-  ## FIXME: Shouldn’t need `mkForce` here (or to duplicate the base contexts).
-  ##        Need to improve module merging.
-  services.github.settings.branches.main.protection.required_status_checks.contexts =
-    lib.mkForce
+  services.github.settings.branches.main.protection.required_status_checks.checks =
+    map (context: {inherit context;})
     ([
         "check-bounds"
         "check-licenses"
@@ -138,10 +136,9 @@
     ## The latest Stackage LTS that we also build on GitHub for.
     latestGhcVersion = "9.10.1";
   };
+  services.nix-ci.allow-import-from-derivation = lib.mkForce true;
 
   ## publishing
-  services.github.settings.repository = {
-    private = false;
-    topics = ["recursion" "plugin"];
-  };
+  services.github.settings.repository.private = false;
+  services.github.settings.repository.topics = ["recursion" "plugin"];
 }
