@@ -60,7 +60,7 @@ in
           flaky.overlays.default
           (flaky-haskell.lib.overlayHaskellPackages
             (map self.lib.nixifyGhcVersion
-              (self.lib.supportedGhcVersions final.system))
+              (self.lib.supportedGhcVersions final.stdenv.hostPlatform.system))
             (final: prev:
               nixpkgs.lib.composeManyExtensions [
                 (flaky.overlays.haskellDependencies final prev)
@@ -102,14 +102,16 @@ in
       ## one via GitHub workflow. Additionally, check any revisions that have
       ## explicit conditionalization. And check whatever version `pkgs.ghc`
       ## maps to in the nixpkgs we depend on.
-      testedGhcVersions = system: [
-        self.lib.defaultGhcVersion
-        "9.4.8"
-        "9.6.7"
-        "9.8.4"
-        "9.12.3"
-        # "ghcHEAD" # doctest doesn’t work on current HEAD
-      ];
+      testedGhcVersions = system:
+        [
+          self.lib.defaultGhcVersion
+          "9.4.8"
+          "9.6.7"
+          "9.8.4"
+        ]
+        ++ nixpkgs.lib.optionals (system != "i686-linux") [
+          "9.12.3" # GHC fails to build on i686-linux
+        ];
 
       ## The versions that are older than those supported by Nix that we
       ## prefer to test against.

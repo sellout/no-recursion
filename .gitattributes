@@ -1,7 +1,3 @@
-/.cache/git/config linguist-generated
-/.cache/git/hooks/pre-push linguist-generated
-/.cache/vale/Vocab/no-recursion/accept.txt linguist-generated
-/.cache/vale/config/vocabularies/no-recursion/accept.txt linguist-generated
 /.dir-locals.el linguist-generated
 /.editorconfig linguist-generated
 /.envrc linguist-generated
@@ -14,6 +10,11 @@
 /.github/workflows/switch-pm-generation.yml linguist-generated
 /.gitignore linguist-generated
 /.hlint.yaml linguist-generated
+/.local/share/git/config linguist-generated
+/.local/share/git/hooks/pre-push linguist-generated
+/.local/share/project-manager/persistence.ccsv linguist-generated
+/.local/share/vale/Vocab/no-recursion/accept.txt linguist-generated
+/.local/share/vale/config/vocabularies/no-recursion/accept.txt linguist-generated
 /.vale.ini linguist-generated
 /core/LICENSE linguist-generated
 /core/LICENSE.AGPL-3.0-only linguist-generated
