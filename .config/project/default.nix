@@ -76,45 +76,32 @@
   ];
 
   ## CI
-  services.github.settings.branches.main.protection.required_status_checks.checks =
+  services.github.settings.branches.main.protection.required_status_checks.checks = let
+    ci = config.services.haskell-ci;
+    ## The matrix as GitHub expands it: an `exclude` entry removes every
+    ## combination that agrees with it on the attributes it names.
+    excluded = entry: lib.any (ex: builtins.intersectAttrs ex entry == ex) ci.exclude;
+    matrix =
+      builtins.filter (entry: !excluded entry) (lib.cartesianProduct {
+        bounds = ["" "--prefer-oldest"];
+        ghc = ci.ghcVersions;
+        os = ci.systems;
+      })
+      ++ ci.include;
+  in
     map (context: {inherit context;})
     ([
         "check-bounds"
         "check-licenses"
       ]
-      ++ lib.concatMap (sys:
-        lib.concatMap (ghc:
-          ## Don’t add `exclude`d matrix entries to the required list
-          ##
-          ## TODO: Make this less manual (like the `include` component).
-            if
-              ## GHC before 8.4 needs an older Ubuntu
-              lib.versionOlder ghc "8.4"
-              && sys == "ubuntu-24.04"
-              ## GHC doesn’t support ARM before GHC 9.2.
-              || lib.versionOlder ghc "9.2"
-              && builtins.elem sys ["macos-15" "ubuntu-24.04-arm"]
-              ## GHC 9.2.1 relied on libnuma at runtime for aarch64
-              || ghc == "9.2.1" && sys == "ubuntu-24.04-arm"
-              ## Local failures
-              || lib.versionOlder ghc "9.6" && sys == "macos-15"
-              || ghc == "9.4.1" && sys == "windows-2025"
-            then []
-            else [
-              "build (${ghc}, ${sys})"
-              "build (--prefer-oldest, ${ghc}, ${sys})"
-            ])
-        self.lib.nonNixTestedGhcVersions)
-      config.services.haskell-ci.systems
-      ## Add `include`d matrix entries to the required list.
       ++ map (
         entry:
           if entry.bounds == ""
           then "build (${entry.ghc}, ${entry.os})"
           else "build (${entry.bounds}, ${entry.ghc}, ${entry.os})"
       )
-      config.services.haskell-ci.include);
-  services.haskell-ci = {
+      matrix);
+  services.haskell-ci = with config.services.github.runners.latest; {
     inherit (self.lib) defaultGhcVersion;
     ghcVersions = self.lib.nonNixTestedGhcVersions;
     cabalPackages = {
@@ -125,12 +112,12 @@
     exclude =
       (map (ghc: {
         inherit ghc;
-        os = "macos-15";
+        os = macos-arm64;
       }) ["9.2.1" "9.4.1"])
       ++ [
         {
           ghc = "9.4.1";
-          os = "windows-2025";
+          os = windows-x64;
         }
       ];
     ## The latest Stackage LTS that we also build on GitHub for.
