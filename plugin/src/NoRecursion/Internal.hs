@@ -99,7 +99,16 @@ moduleAllowsRecursion allowRecursion modAnns =
     && notElem noRecursionAnnotation modAnns
 
 -- | Whether a rendered binder name is one the desugarer invented for a class
---   method or a dictionary.
+--   method or a dictionary, including the copies that a @SPECIALISE instance@
+--   pragma makes of them (prefixed with @$s@), which share a recursive group
+--   with the originals.
+--
+-- >>> isInternalName "$fExceptionInternalFailure"
+-- True
+-- >>> isInternalName "$s$ctoException"
+-- True
+-- >>> isInternalName "$sgo"
+-- False
 isInternalName :: String -> Bool
 isInternalName v = "$c" `isPrefixOf` v || "$f" `isPrefixOf` v
 
