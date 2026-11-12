@@ -106,6 +106,24 @@ spec =
     it "drops a top-level group of desugarer names with ignoreMethodCycles" $
       analyzed defaultOpts [] [] [Plugins.Rec [("$cfoo", leaf)]] `shouldBe` []
 
+    it "drops an instance group joined by its SPECIALISE instance copies" $
+      analyzed
+        defaultOpts
+        []
+        []
+        [ Plugins.Rec
+            [ ("$fExceptionFoo", leaf),
+              ("$ctoException", leaf),
+              ("$s$fExceptionFoo", leaf),
+              ("$s$ctoException", leaf)
+            ]
+        ]
+        `shouldBe` []
+
+    it "still reports a specialised group that isn't all desugarer names" $
+      analyzed defaultOpts [] [] [Plugins.Rec [("$s$cfoo", leaf), ("$sgo", leaf)]]
+        `shouldBe` [Record [] ("$s$cfoo" :| ["$sgo"])]
+
     it "reports that same group without ignoreMethodCycles" $
       analyzed
         defaultOpts {ignoreMethodCycles = False}

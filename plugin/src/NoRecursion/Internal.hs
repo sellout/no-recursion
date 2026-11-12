@@ -32,9 +32,9 @@ import safe "base" Data.Foldable
 import safe "base" Data.Function (($))
 import safe "base" Data.Functor ((<$>))
 import safe "base" Data.Kind (Type)
-import safe "base" Data.List (filter, intercalate, isPrefixOf, null)
+import safe "base" Data.List (filter, intercalate, isPrefixOf, null, stripPrefix)
 import safe "base" Data.List.NonEmpty (NonEmpty, nonEmpty)
-import safe "base" Data.Maybe (maybe)
+import safe "base" Data.Maybe (fromMaybe, maybe)
 import safe "base" Data.Semigroup ((<>))
 import safe "base" Data.String (String)
 import safe "base" Data.Tuple (fst)
@@ -99,9 +99,20 @@ moduleAllowsRecursion allowRecursion modAnns =
     && notElem noRecursionAnnotation modAnns
 
 -- | Whether a rendered binder name is one the desugarer invented for a class
---   method or a dictionary.
+--   method or a dictionary, including the copies that a @SPECIALISE instance@
+--   pragma makes of them (prefixed with @$s@), which share a recursive group
+--   with the originals.
+--
+-- >>> isInternalName "$fExceptionInternalFailure"
+-- True
+-- >>> isInternalName "$s$ctoException"
+-- True
+-- >>> isInternalName "$sgo"
+-- False
 isInternalName :: String -> Bool
-isInternalName v = "$c" `isPrefixOf` v || "$f" `isPrefixOf` v
+isInternalName name =
+  let v = fromMaybe name $ stripPrefix "$s" name
+   in "$c" `isPrefixOf` v || "$f" `isPrefixOf` v
 
 -- | The whole analysis, over any binder type.
 --
