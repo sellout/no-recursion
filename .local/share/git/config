@@ -4,4 +4,4 @@
 	path = ".config/git/template/commit.txt"
 
 [core]
-	hooksPath = "../../.local/share/git/hooks"
+	hooksPath = ".local/share/git/hooks"
